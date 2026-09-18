@@ -2,8 +2,9 @@
 (function (R) {
   var T = R.TILE;
   // Ajustes de "sensación" del salto y la carrera
-  var GRAVEDAD = 2600;      // px/s²
-  var SALTO = 980;          // velocidad inicial del salto (alcanza ~3.8 celdas)
+  var GRAVEDAD = 3000;      // px/s²
+  var SALTO = 1180;         // velocidad inicial del salto (sube ~4.8 celdas manteniendo la tecla)
+  var SALTO_MINIMO = 810;   // al soltar la tecla el salto se corta, pero nunca por debajo de ~2.3 celdas
   var VEL_MAX = 320;        // px/s corriendo
   var ACELERACION = 2800;
   var FRICCION = 2600;
@@ -43,7 +44,7 @@
       if (partida) partida.audio.salto();
     }
     // Soltar el botón corta el salto (salto corto/largo)
-    if (this.saltando && !input.salto && this.vy < -260) { this.vy = -260; this.saltando = false; }
+    if (this.saltando && !input.salto && this.vy < -SALTO_MINIMO) { this.vy = -SALTO_MINIMO; this.saltando = false; }
     if (this.vy >= 0) this.saltando = false;
 
     this.vy = Math.min(this.vy + GRAVEDAD * dt, CAIDA_MAX);
@@ -57,6 +58,8 @@
     if (this.enSuelo) this.anim += dt * Math.abs(this.vx) / VEL_MAX;
   };
 
+  var TOLERANCIA_ESQUINA = 14; // px: si los pies rozan el borde superior de un bloque, el jugador sube a él
+
   Jugador.prototype.moverX = function (dx, nivel) {
     if (dx === 0) return;
     this.x += dx;
@@ -64,6 +67,14 @@
     var cx = dx > 0 ? Math.floor((this.x + this.w - 1) / T) : Math.floor(this.x / T);
     for (var cy = cy0; cy <= cy1; cy++) {
       if (nivel.esSolido(cx, cy)) {
+        // Tolerancia de esquina: solo choca la fila de los pies, por muy poco, y arriba hay lugar
+        var sobra = this.y + this.h - cy * T;
+        if (cy === cy1 && cy > cy0 && sobra <= TOLERANCIA_ESQUINA && !nivel.esSolido(cx, cy - 1) && this.vy >= -60) {
+          this.y = cy * T - this.h;
+          if (this.vy > 0) this.vy = 0;
+          this.enSuelo = true;
+          return;
+        }
         this.x = dx > 0 ? cx * T - this.w : (cx + 1) * T;
         this.vx = 0;
         return;

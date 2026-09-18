@@ -54,9 +54,12 @@ js/main.js            Arranque y bucle del juego
 
 Consejos de diseño (medidos con la física actual):
 
-- El salto sube hasta **3 celdas** de plataforma y alcanza estrellas hasta **4 celdas**
-  por encima del piso.
-- Corriendo se cruza un pozo de hasta **4 celdas**.
+- Un toque corto salta ~2,4 celdas; manteniendo la tecla sube ~4,7 celdas. Poné los cubos
+  a **3 celdas** por encima del piso (fila del cubo = fila del piso − 4, por ejemplo fila 7
+  si el piso está en la fila 10 y el jugador camina en la 9). A 4 celdas se llega, pero es difícil.
+- Las estrellas se alcanzan hasta **5 celdas** por encima del piso.
+- Corriendo se cruza un pozo de hasta **5 celdas** (4 es cómodo).
+- Cuidado con techos o bloques bajos encima de una plataforma: el jugador se golpea la cabeza.
 - No pongas una plataforma baja (a 2 o 3 celdas) justo antes de un pincho o pozo:
   el jugador se golpea la cabeza y no llega.
 - La fila de abajo sin `G` es un pozo (caer = perder una vida).
