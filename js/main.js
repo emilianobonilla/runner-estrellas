@@ -27,6 +27,25 @@
   window.addEventListener('resize', ajustar);
   ajustar();
 
+  /* ---------- pantalla completa ---------- */
+  var FS = R.Fullscreen;
+  var hudFs = document.getElementById('hud-fs');
+  // El botón ⛶ solo tiene sentido si el navegador lo soporta y no corre ya como app instalada
+  var fsDisponible = FS.soportado() && !FS.instalada();
+  hudFs.classList.toggle('oculto', !fsDisponible);
+  hudFs.addEventListener('click', function () { FS.alternar().catch(function () {}); });
+  function pantallaCompletaAlJugar() {
+    if (!fsDisponible || !datos.perfil.pantallaCompleta || FS.activo()) return;
+    FS.entrar().catch(function () { /* el navegador lo rechazó: seguimos en ventana */ });
+  }
+  FS.onCambio(function () {
+    hudFs.title = FS.activo() ? 'Salir de pantalla completa' : 'Pantalla completa';
+    ajustar();
+    // Si el jugador sale de pantalla completa (Esc) en medio del nivel, pausamos
+    if (!FS.activo() && partida && partida.estado === 'jugando') pausar();
+    else if (R.UI.refrescar) R.UI.refrescar();
+  });
+
   /* ---------- controles táctiles ---------- */
   var esTactil = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
   function actualizarTactil() {
@@ -82,6 +101,7 @@
   function iniciarPartida(nivelDef, contexto) {
     contexto = contexto || { tipo: 'libre', nombre: datos.perfil.nombre || 'Anónimo' };
     actual = { nivelDef: nivelDef, contexto: contexto };
+    pantallaCompletaAlJugar();
     R.UI.ocultar();
     partida = new R.Partida(nivelDef, {
       personaje: personajeActual(), tema: temaPara(nivelDef), audio: audio, input: input,
@@ -148,6 +168,7 @@
     datos: datos, audio: audio, input: input,
     iniciarPartida: iniciarPartida, pausar: pausar, continuar: continuar, reiniciar: reiniciar, abandonar: abandonar,
     personajeActual: personajeActual, temaPara: temaPara, actualizarTactil: actualizarTactil,
+    fsDisponible: fsDisponible,
     partida: function () { return partida; },
 
     dibujarPersonajeEn: function (cv, per) {

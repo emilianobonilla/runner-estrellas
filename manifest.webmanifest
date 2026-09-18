@@ -1,0 +1,16 @@
+{
+  "name": "Runner de Estrellas",
+  "short_name": "Runner",
+  "description": "Corré, saltá y juntá todas las estrellas. Funciona sin internet.",
+  "lang": "es",
+  "start_url": ".",
+  "scope": ".",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#0f1420",
+  "theme_color": "#0f1420",
+  "icons": [
+    { "src": "assets/img/icono-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "assets/img/icono-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
