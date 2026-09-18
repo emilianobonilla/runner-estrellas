@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Runner de Estrellas</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <div id="escenario">
+      <div id="marco">
+        <canvas id="juego" width="960" height="528"></canvas>
+
+        <!-- Marcador durante la partida -->
+        <div id="hud" class="oculto">
+          <span class="hud-item" title="Estrellas">⭐ <b id="hud-estrellas">0/0</b></span>
+          <span class="hud-item" title="Puntos">🏆 <b id="hud-puntos">0</b></span>
+          <span class="hud-item" title="Vidas">❤️ <b id="hud-vidas">3</b></span>
+          <span class="hud-item" title="Tiempo">⏱ <b id="hud-tiempo">0:00.0</b></span>
+          <span class="hud-item hud-nombre" id="hud-nombre"></span>
+          <button id="hud-pausa" class="hud-boton" title="Pausa (Esc)">⏸</button>
+        </div>
+
+        <!-- Controles táctiles -->
+        <div id="touch" class="oculto">
+          <div class="touch-grupo izquierda">
+            <button class="touch-boton" data-tecla="izq" aria-label="Izquierda">◀</button>
+            <button class="touch-boton" data-tecla="der" aria-label="Derecha">▶</button>
+          </div>
+          <div class="touch-grupo derecha">
+            <button class="touch-boton grande" data-tecla="salto" aria-label="Saltar">▲</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pantallas (menú, selección, resultados, etc.) -->
+    <div id="pantallas"></div>
+  </div>
+
+  <!-- Núcleo -->
+  <script src="js/core/util.js"></script>
+  <script src="js/core/input.js"></script>
+  <script src="js/core/audio.js"></script>
+  <script src="js/core/storage.js"></script>
+
+  <!-- Datos: temas, personajes y niveles (agregá aquí los nuevos) -->
+  <script src="data/themes.js"></script>
+  <script src="data/characters.js"></script>
+  <script src="data/levels/nivel-01-prado.js"></script>
+  <script src="data/levels/nivel-02-cueva.js"></script>
+  <script src="data/levels/nivel-03-nubes.js"></script>
+
+  <!-- Juego -->
+  <script src="js/game/level.js"></script>
+  <script src="js/game/entities.js"></script>
+  <script src="js/game/player.js"></script>
+  <script src="js/game/render.js"></script>
+  <script src="js/game/partida.js"></script>
+
+  <!-- Interfaz -->
+  <script src="js/ui/screens.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

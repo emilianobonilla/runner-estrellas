@@ -1,0 +1,181 @@
+/* ===== Runner de Estrellas — estilos de interfaz =====
+   La estética del JUEGO (cielo, suelo, personajes) se define en data/themes.js
+   y data/characters.js. Este archivo solo estiliza los menús y el HUD. */
+
+:root {
+  --bg: #0f1420;
+  --panel: #1b2233;
+  --panel2: #243048;
+  --panel3: #2e3c5a;
+  --texto: #f2f5fa;
+  --suave: #a9b4c8;
+  --acento: #ffd23f;
+  --acento2: #4cc9f0;
+  --peligro: #e63946;
+  --ok: #57cc99;
+  --radio: 14px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0; height: 100%;
+  background: var(--bg); color: var(--texto);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, sans-serif;
+  overflow: hidden;
+  -webkit-user-select: none; user-select: none;
+  touch-action: manipulation;
+}
+
+#app { position: fixed; inset: 0; display: flex; flex-direction: column; }
+#escenario { position: relative; flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+#marco { position: relative; }
+#juego { display: block; background: #000; border-radius: 6px; width: 100%; height: 100%; }
+
+.oculto { display: none !important; }
+
+/* ---------- HUD ---------- */
+#hud {
+  position: absolute; top: 0; left: 0; right: 0;
+  display: flex; align-items: center; gap: 18px;
+  padding: 10px 16px;
+  font-weight: 700; font-size: 18px;
+  text-shadow: 0 2px 4px rgba(0,0,0,.7);
+  pointer-events: none;
+}
+.hud-item b { font-variant-numeric: tabular-nums; }
+.hud-nombre { margin-left: auto; color: var(--acento); font-weight: 600; }
+.hud-boton {
+  pointer-events: auto; cursor: pointer;
+  background: rgba(0,0,0,.35); color: #fff; border: 2px solid rgba(255,255,255,.5);
+  border-radius: 10px; font-size: 18px; width: 40px; height: 36px;
+}
+
+/* ---------- Controles táctiles ---------- */
+#touch { position: absolute; inset: 0; pointer-events: none; }
+.touch-grupo { position: absolute; bottom: 18px; display: flex; gap: 14px; pointer-events: auto; }
+.touch-grupo.izquierda { left: 18px; }
+.touch-grupo.derecha { right: 18px; }
+.touch-boton {
+  width: 72px; height: 72px; border-radius: 50%;
+  border: 3px solid rgba(255,255,255,.6); background: rgba(0,0,0,.35); color: #fff;
+  font-size: 30px; touch-action: none; -webkit-tap-highlight-color: transparent;
+}
+.touch-boton.grande { width: 92px; height: 92px; font-size: 40px; }
+.touch-boton:active, .touch-boton.activo { background: rgba(255,210,63,.6); }
+
+/* ---------- Pantallas ---------- */
+#pantallas {
+  position: absolute; inset: 0; overflow: auto;
+  background: rgba(10,14,24,.86);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+}
+#pantallas.oculto { display: none; }
+#pantallas.transparente { background: rgba(10,14,24,.55); }
+
+.panel {
+  width: min(820px, 100%);
+  background: var(--panel);
+  border-radius: var(--radio);
+  padding: 28px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.5);
+  animation: aparecer .18s ease-out;
+}
+.panel.angosto { width: min(520px, 100%); }
+.panel.ancho { width: min(1000px, 100%); }
+@keyframes aparecer { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
+
+.titulo { font-size: 44px; margin: 0 0 6px; letter-spacing: -1px; text-align: center; }
+.titulo .estrella { color: var(--acento); }
+.subtitulo { color: var(--suave); text-align: center; margin: 0 0 24px; font-size: 16px; }
+h2 { margin: 0 0 16px; font-size: 26px; }
+h3 { margin: 18px 0 8px; font-size: 18px; color: var(--suave); text-transform: uppercase; letter-spacing: 1px; }
+p { line-height: 1.5; }
+.suave { color: var(--suave); }
+.centrado { text-align: center; }
+
+.botones { display: flex; flex-direction: column; gap: 12px; }
+.botones.fila { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+
+.btn {
+  cursor: pointer; border: 0; border-radius: 12px;
+  padding: 14px 22px; font-size: 18px; font-weight: 700;
+  background: var(--panel3); color: var(--texto);
+  transition: transform .08s, background .12s;
+}
+.btn:hover { background: #3a4b70; }
+.btn:active { transform: scale(.98); }
+.btn.principal { background: var(--acento); color: #1a1a1a; }
+.btn.principal:hover { background: #ffe07a; }
+.btn.secundario { background: var(--acento2); color: #06202a; }
+.btn.peligro { background: var(--peligro); color: #fff; }
+.btn.chico { padding: 8px 14px; font-size: 15px; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+
+.barra-superior { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+.barra-superior h2 { margin: 0; }
+
+label.campo { display: block; margin: 10px 0 16px; }
+label.campo span { display: block; color: var(--suave); font-size: 14px; margin-bottom: 6px; }
+input[type="text"], textarea, select {
+  width: 100%; padding: 12px 14px; font-size: 17px;
+  border-radius: 10px; border: 2px solid var(--panel3);
+  background: #121a2a; color: var(--texto); outline: none;
+  font-family: inherit;
+}
+input[type="text"]:focus, textarea:focus, select:focus { border-color: var(--acento2); }
+textarea { min-height: 110px; resize: vertical; }
+
+.tarjetas { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; }
+.tarjeta {
+  background: var(--panel2); border-radius: 12px; padding: 14px;
+  cursor: pointer; border: 3px solid transparent; transition: border-color .12s, transform .08s;
+  position: relative;
+}
+.tarjeta:hover { transform: translateY(-2px); border-color: #3a4b70; }
+.tarjeta.sel { border-color: var(--acento); }
+.tarjeta h4 { margin: 0 0 4px; font-size: 18px; }
+.tarjeta .meta { color: var(--suave); font-size: 14px; }
+.tarjeta .num { position: absolute; top: 10px; right: 12px; font-size: 13px; color: var(--suave); }
+.tarjeta canvas { display: block; margin: 0 auto 6px; }
+.tarjeta .check { color: var(--ok); }
+.muestra-tema { height: 54px; border-radius: 8px; margin-bottom: 8px; position: relative; overflow: hidden; }
+.muestra-tema .suelo { position: absolute; left: 0; right: 0; bottom: 0; height: 14px; }
+.muestra-tema .colina { position: absolute; bottom: 12px; width: 70%; height: 30px; border-radius: 50% 50% 0 0; left: 15%; }
+
+.opciones { display: flex; gap: 10px; flex-wrap: wrap; }
+.chip {
+  padding: 10px 16px; border-radius: 999px; cursor: pointer;
+  background: var(--panel2); border: 2px solid transparent; font-weight: 600;
+}
+.chip.sel { border-color: var(--acento); }
+.chip input { display: none; }
+
+table.tabla { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 16px; }
+.tabla th, .tabla td { padding: 10px 10px; text-align: left; border-bottom: 1px solid #33405e; }
+.tabla th { color: var(--suave); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: .5px; }
+.tabla td.num, .tabla th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.tabla tr.destacado td { color: var(--acento); font-weight: 700; }
+.tabla .pos { color: var(--suave); width: 36px; }
+.tabla .celda-comp { white-space: nowrap; }
+.tabla .celda-comp small { display: block; color: var(--suave); font-weight: 400; }
+.contenedor-tabla { overflow-x: auto; }
+
+.desglose { list-style: none; padding: 0; margin: 12px 0; }
+.desglose li { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #33405e; }
+.desglose li.total { border: 0; font-size: 22px; font-weight: 800; color: var(--acento); margin-top: 6px; }
+
+.gran-numero { font-size: 56px; font-weight: 900; text-align: center; color: var(--acento); margin: 6px 0; }
+.etiqueta-record { display: inline-block; background: var(--ok); color: #062a1a; font-weight: 800; padding: 6px 14px; border-radius: 999px; }
+
+.tecla { display: inline-block; background: #2e3c5a; border: 1px solid #4a5b82; border-bottom-width: 3px; border-radius: 6px; padding: 2px 8px; font-family: ui-monospace, monospace; font-size: 14px; margin: 0 2px; }
+.ayuda { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 24px; }
+@media (max-width: 640px) {
+  .ayuda { grid-template-columns: 1fr; }
+  .panel { padding: 20px; }
+  .titulo { font-size: 34px; }
+}
+.pie { margin-top: 20px; display: flex; gap: 10px; justify-content: space-between; flex-wrap: wrap; }
+.mensaje { background: var(--panel2); border-left: 4px solid var(--acento2); padding: 10px 14px; border-radius: 8px; margin: 10px 0; }
+.aviso { color: var(--suave); font-size: 14px; }
