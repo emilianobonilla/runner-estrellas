@@ -10,6 +10,7 @@
   function personajeActual() { return R.app.personajeActual(); }
 
   UI.mostrar = function (html, op) {
+    UI.refrescar = null;   // pantalla a redibujar cuando cambia el modo pantalla completa
     cont.innerHTML = html;
     cont.classList.remove('oculto');
     cont.classList.toggle('transparente', !!(op && op.transparente));
@@ -21,7 +22,7 @@
     });
     var foco = cont.querySelector('[autofocus]'); if (foco) foco.focus();
   };
-  UI.ocultar = function () { cont.classList.add('oculto'); cont.innerHTML = ''; };
+  UI.ocultar = function () { cont.classList.add('oculto'); cont.innerHTML = ''; UI.refrescar = null; };
 
   /* ---------- helpers de plantilla ---------- */
   function botonVolver(accion, texto) {
@@ -31,6 +32,14 @@
     return '<div class="muestra-tema" style="background:linear-gradient(' + t.cielo[0] + ',' + t.cielo[1] + ')">' +
       '<div class="colina" style="background:' + t.colinas[0] + '"></div>' +
       '<div class="suelo" style="background:' + t.sueloRelleno + ';border-top:5px solid ' + t.sueloTop + '"></div></div>';
+  }
+  function botonPantallaCompleta() {
+    if (!R.app.fsDisponible) return '';
+    return '<button class="btn" data-accion="pantallaCompleta">⛶ &nbsp;' + (R.Fullscreen.activo() ? 'Salir de pantalla completa' : 'Pantalla completa') + '</button>';
+  }
+  function avisoIOS() {
+    if (!(R.Fullscreen.esIOS() && !R.Fullscreen.instalada())) return '';
+    return '<p class="aviso" style="margin-top:12px">📱 Para jugar a pantalla completa en iPhone o iPad: tocá <b>Compartir</b> y luego <b>Agregar a pantalla de inicio</b>. Abrilo desde ahí.</p>';
   }
   function nombreJugador() { return (datos().perfil.nombre || '').trim() || 'Anónimo'; }
 
@@ -47,9 +56,12 @@
       '<button class="btn" data-accion="ranking">🏆 &nbsp;Ranking</button>' +
       '<button class="btn" data-accion="personalizar">🎨 &nbsp;Personalizar</button>' +
       '<button class="btn" data-accion="comoJugar">❓ &nbsp;Cómo jugar</button>' +
+      botonPantallaCompleta() +
       '</div>' +
       '<p class="aviso" style="margin-top:18px">Jugás como <b>' + esc(nombreJugador()) + '</b> con <b>' + esc(per.nombre) + '</b></p>' +
+      avisoIOS() +
       '</div>', { transparente: true });
+    UI.refrescar = UI.menu;
   };
 
   /* ================= JUGAR: elegir nivel ================= */
@@ -99,6 +111,8 @@
       '<h3>Estética</h3><div class="tarjetas">' + temas + '</div>' +
       '<h3>Sonido</h3><div class="opciones">' + chip('sonido', true, '🔊 Con sonido') + chip('sonido', false, '🔇 Silencio') + '</div>' +
       '<h3>Controles táctiles</h3><div class="opciones">' + chip('tactil', 'auto', 'Automático') + chip('tactil', 'si', 'Siempre') + chip('tactil', 'no', 'Nunca') + '</div>' +
+      (R.app.fsDisponible ? '<h3>Pantalla completa</h3><div class="opciones">' + chip('pantallaCompleta', true, '⛶ Al empezar un nivel') + chip('pantallaCompleta', false, 'Nunca') + '</div>' : '') +
+      avisoIOS() +
       '<p class="aviso" style="margin-top:16px">Para agregar personajes o temas nuevos, editá <code>data/characters.js</code> y <code>data/themes.js</code>.</p>' +
       '</div>');
   };
@@ -206,7 +220,9 @@
       '<button class="btn principal" data-accion="continuar" autofocus>▶ Continuar</button>' +
       '<button class="btn" data-accion="reiniciar">↻ Reiniciar nivel</button>' +
       '<button class="btn" data-accion="abandonar">✕ Salir</button>' +
+      botonPantallaCompleta() +
       '</div><p class="aviso" style="margin-top:14px">Esc o P para continuar</p></div>', { transparente: true });
+    UI.refrescar = UI.pausa;
   };
 
   /* ================= RESULTADOS ================= */
@@ -253,6 +269,7 @@
       '<span class="tecla">↑</span>, <span class="tecla">W</span> o <span class="tecla">Espacio</span> saltar (mantené para saltar más alto)<br>' +
       '<span class="tecla">Esc</span> o <span class="tecla">P</span> pausa</p>' +
       '<p class="suave">En tablets aparecen botones en pantalla.</p></div>' +
+      '<div><h3>Pantalla completa</h3><p>Al empezar un nivel el juego pasa a pantalla completa (se puede cambiar en Personalizar). También con el botón ⛶ del menú o del marcador. <span class="tecla">Esc</span> sale y pausa el juego.</p>' + avisoIOS() + '</div>' +
       '<div><h3>Objetivo</h3><p>Llegá a la bandera 🏁 juntando la mayor cantidad de estrellas ⭐. Podés retroceder un poco, pero la pantalla no vuelve atrás.</p></div>' +
       '<div><h3>Puntos</h3><p>Estrella: 100 · Pisar un enemigo: 50 · Llegar a la meta: 500<br>Bonus por terminar rápido y por juntar todas las estrellas.</p></div>' +
       '<div><h3>Peligros</h3><p>Los pinchos y los enemigos te quitan una vida (tenés 3). Saltá encima de los enemigos para vencerlos. Los checkpoints guardan tu avance.</p></div>' +
@@ -270,6 +287,7 @@
     continuar: function () { R.app.continuar(); },
     reiniciar: function () { R.app.reiniciar(); },
     abandonar: function () { R.app.abandonar(); },
+    pantallaCompleta: function () { R.Fullscreen.alternar().catch(function () {}); },
 
     iniciarNivel: function (id) {
       var def = nivel(id); if (!def) return;

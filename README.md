@@ -19,6 +19,12 @@ enemigos. Funciona **sin internet** y sin instalar nada.
 
 En tablets aparecen botones táctiles en pantalla (se puede forzar en *Personalizar*).
 
+**Pantalla completa:** al empezar un nivel el juego pasa solo a pantalla completa
+(Chrome, Edge, Firefox, Silk en tablets Fire). Se puede desactivar en *Personalizar*
+o alternar con el botón ⛶ del menú y del marcador; `Esc` sale y pausa.
+En **iPhone/iPad** Safari no permite pantalla completa a las páginas: tocá
+*Compartir → Agregar a pantalla de inicio* y abrí el juego desde ese ícono.
+
 El personaje puede retroceder un poco, pero la pantalla nunca vuelve atrás.
 
 **Puntos:** estrella 100 · pisar enemigo 50 · meta 500 · bonus por tiempo y por
@@ -32,8 +38,9 @@ css/style.css         Estilos de menús y HUD
 data/themes.js        Estéticas (colores del escenario, imágenes opcionales)
 data/characters.js    Personajes (colores, accesorio, sprite opcional)
 data/levels/*.js      Niveles (mapas de caracteres)
-assets/img/           Imágenes propias opcionales (fondos, sprites, tiles)
-js/core/              Utilidades, teclado/táctil, sonido, guardado local
+assets/img/           Íconos de la app e imágenes propias opcionales (fondos, sprites, tiles)
+manifest.webmanifest  Datos para instalar como app (nombre, ícono, pantalla completa)
+js/core/              Utilidades, teclado/táctil, sonido, guardado local, pantalla completa
 js/game/              Nivel, entidades, jugador (física), render, partida
 js/ui/screens.js      Pantallas: menú, niveles, personalizar, ranking, competencias
 js/main.js            Arranque y bucle del juego
