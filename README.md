@@ -4,9 +4,11 @@ Juego de plataformas estilo *Mario Bros* / *Ika* (Plan Ceibal): el personaje cor
 salta y junta estrellas hasta llegar a la bandera, esquivando pinchos, pozos y
 enemigos. Funciona **sin internet** y sin instalar nada.
 
+**Jugar online:** https://emilianobonilla.github.io/runner-estrellas/
+
 ## Cómo jugar
 
-1. Abrí `index.html` con doble clic (Chrome, Firefox, Edge o Safari).
+1. Abrí `index.html` con doble clic (Chrome, Firefox, Edge o Safari), o entrá al enlace de arriba.
 2. Escribí tu nombre, elegí un nivel y ¡a correr!
 
 | Acción     | Teclas                         |
