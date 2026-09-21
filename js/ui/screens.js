@@ -11,6 +11,7 @@
 
   UI.mostrar = function (html, op) {
     UI.refrescar = null;   // pantalla a redibujar cuando cambia el modo pantalla completa
+    UI.pantalla = null;    // nombre de la pantalla visible (lo usa la carrera para refrescarse)
     cont.innerHTML = html;
     cont.classList.remove('oculto');
     cont.classList.toggle('transparente', !!(op && op.transparente));
@@ -21,12 +22,17 @@
       if (per) R.app.dibujarPersonajeEn(cv, per);
     });
     var foco = cont.querySelector('[autofocus]'); if (foco) foco.focus();
+    // Con botón de volver dejamos una entrada en el historial: así el botón
+    // Atrás del celular (o del navegador) retrocede en vez de cerrar el juego.
+    if (cont.querySelector('.btn.volver') && !(history.state && history.state.runner)) {
+      try { history.pushState({ runner: 1 }, ''); } catch (e) { /* file:// no lo permite */ }
+    }
   };
-  UI.ocultar = function () { cont.classList.add('oculto'); cont.innerHTML = ''; UI.refrescar = null; };
+  UI.ocultar = function () { cont.classList.add('oculto'); cont.innerHTML = ''; UI.refrescar = null; UI.pantalla = null; };
 
   /* ---------- helpers de plantilla ---------- */
   function botonVolver(accion, texto) {
-    return '<button class="btn chico" data-accion="' + (accion || 'menu') + '">← ' + (texto || 'Menú') + '</button>';
+    return '<button class="btn volver" data-accion="' + (accion || 'menu') + '">← ' + (texto || 'Menú') + '</button>';
   }
   function muestraTema(t) {
     return '<div class="muestra-tema" style="background:linear-gradient(' + t.cielo[0] + ',' + t.cielo[1] + ')">' +
@@ -52,6 +58,7 @@
       '<p class="subtitulo">Corré, saltá y juntá todas las estrellas</p>' +
       '<div class="botones">' +
       '<button class="btn principal" data-accion="jugar">▶ &nbsp;Jugar</button>' +
+      '<button class="btn" data-accion="carrera">🏃 &nbsp;Carrera 1 vs 1</button>' +
       '<button class="btn" data-accion="competencias">🏁 &nbsp;Competencias</button>' +
       '<button class="btn" data-accion="ranking">🏆 &nbsp;Ranking</button>' +
       '<button class="btn" data-accion="personalizar">🎨 &nbsp;Personalizar</button>' +
@@ -116,6 +123,14 @@
       '<p class="aviso" style="margin-top:16px">Para agregar personajes o temas nuevos, editá <code>data/characters.js</code> y <code>data/themes.js</code>.</p>' +
       '</div>');
   };
+
+  /* Al elegir una opción la pantalla se vuelve a dibujar: conservamos el
+     scroll para no saltar al tope (se nota mucho en vertical). */
+  function repintarPersonalizar() {
+    var y = cont.scrollTop;
+    UI.personalizar();
+    cont.scrollTop = y;
+  }
 
   /* ================= RANKING ================= */
   UI.ranking = function (nivelId) {
@@ -270,10 +285,185 @@
       '<span class="tecla">Esc</span> o <span class="tecla">P</span> pausa</p>' +
       '<p class="suave">En tablets aparecen botones en pantalla.</p></div>' +
       '<div><h3>Pantalla completa</h3><p>Al empezar un nivel el juego pasa a pantalla completa (se puede cambiar en Personalizar). También con el botón ⛶ del menú o del marcador. <span class="tecla">Esc</span> sale y pausa el juego.</p>' + avisoIOS() + '</div>' +
+      '<div><h3>Carrera 1 vs 1</h3><p>Desde el menú, un jugador crea una sala y le dicta el código de 4 números al otro. Corren el mismo nivel al mismo tiempo, cada uno ve al rival medio transparente y una barra muestra quién va adelante. Gana el primero en tocar la bandera; morir no te elimina, solo te hace perder tiempo. Necesita internet en los dos dispositivos.</p></div>' +
       '<div><h3>Objetivo</h3><p>Llegá a la bandera 🏁 juntando la mayor cantidad de estrellas ⭐. Podés retroceder un poco, pero la pantalla no vuelve atrás.</p></div>' +
       '<div><h3>Puntos</h3><p>Estrella: 100 · Pisar un enemigo: 50 · Llegar a la meta: 500<br>Bonus por terminar rápido y por juntar todas las estrellas.</p></div>' +
       '<div><h3>Peligros</h3><p>Los pinchos y los enemigos te quitan una vida (tenés 3). Saltá encima de los enemigos para vencerlos. Los checkpoints guardan tu avance.</p></div>' +
       '</div></div>');
+  };
+
+  /* ================= CARRERA ENTRE DOS DISPOSITIVOS ================= */
+  function personajePorId(id) {
+    return R.personajes.filter(function (p) { return p.id === id; })[0] || R.personajes[0];
+  }
+
+  UI.carrera = function () {
+    var C = R.Carrera;
+    UI.mostrar(
+      '<div class="panel">' +
+      '<div class="barra-superior"><h2>🏃 Carrera 1 vs 1</h2>' + botonVolver('menu') + '</div>' +
+      (C.soportada() ? '' : '<div class="mensaje">Este navegador no puede conectarse con otro dispositivo. Probá con Chrome, Edge o Firefox.</div>') +
+      '<p class="suave">Dos jugadores en dispositivos distintos corren el mismo nivel al mismo tiempo. Uno crea la sala y le pasa el código al otro. Gana el primero que toca la bandera 🏁.</p>' +
+      '<p class="aviso">Ojo: la carrera es lo único del juego que necesita internet en los dos dispositivos, porque se conectan entre ellos. Todo lo demás sigue andando sin conexión.</p>' +
+      (location.protocol === 'file:' ? '<p class="aviso">📄 Abriste el juego con doble clic. Si la sala no llega a abrirse, probá entrando desde la página web del juego (o desde un servidor local): algunos navegadores limitan las conexiones cuando el archivo se abre directo del disco.</p>' : '') +
+      '<label class="campo"><span>Tu nombre</span><input type="text" maxlength="20" data-campo="nombre" placeholder="Escribí tu nombre" value="' + esc(datos().perfil.nombre) + '"></label>' +
+      '<div class="botones">' +
+      '<button class="btn principal" data-accion="carreraCrear">📡 &nbsp;Crear una sala</button>' +
+      '<button class="btn" data-accion="carreraUnirse">🔢 &nbsp;Entrar con un código</button>' +
+      '</div>' +
+      '<p class="aviso" style="margin-top:16px">Jugás con <b>' + esc(personajeActual().nombre) + '</b> · <a href="#" data-accion="personalizar" style="color:var(--acento2)">cambiar</a></p>' +
+      '</div>');
+    UI.pantalla = 'carrera';
+  };
+
+  UI.carreraUnirse = function (error) {
+    UI.mostrar(
+      '<div class="panel angosto">' +
+      '<div class="barra-superior"><h2>Entrar a una sala</h2>' + botonVolver('carrera', 'Carrera') + '</div>' +
+      (error ? '<div class="mensaje">' + esc(error) + '</div>' : '') +
+      '<label class="campo"><span>Código de la sala (4 números)</span>' +
+      '<input type="text" id="carrera-codigo" class="codigo" inputmode="numeric" autocomplete="off" maxlength="4" placeholder="1234" autofocus></label>' +
+      '<div id="carrera-error" class="aviso" style="color:var(--peligro)"></div>' +
+      '<div class="pie"><span></span><button class="btn principal" data-accion="carreraConectar">Conectar</button></div>' +
+      '</div>');
+    UI.pantalla = 'carreraUnirse';
+  };
+
+  UI.carreraConectando = function () {
+    var C = R.Carrera;
+    UI.mostrar(
+      '<div class="panel angosto centrado">' +
+      '<h2>' + (C.esAnfitrion ? 'Abriendo la sala…' : 'Buscando la sala ' + esc(C.codigo) + '…') + '</h2>' +
+      '<p class="suave">Conectando con el otro dispositivo.</p>' +
+      '<div class="botones"><button class="btn" data-accion="carreraSalir">Cancelar</button></div>' +
+      '</div>');
+    UI.pantalla = 'carreraConectando';
+  };
+
+  UI.carreraSala = function () {
+    var C = R.Carrera;
+    if (!C.activa()) return UI.carrera();
+    if (C.estado === 'conectando') return UI.carreraConectando();
+
+    var yo = C.yo || { nombre: 'Vos', listo: false };
+    var r = C.rival;
+
+    function ficha(nombre, perId, listo, pie) {
+      var per = personajePorId(perId);
+      return '<div class="tarjeta centrado ' + (listo ? 'sel' : '') + '">' +
+        '<canvas width="96" height="96" data-personaje="' + esc(per.id) + '"></canvas>' +
+        '<h4>' + esc(nombre) + '</h4><div class="meta">' + pie + '</div></div>';
+    }
+
+    var fichas = ficha(yo.nombre + ' (vos)', yo.personajeId, yo.listo, yo.listo ? '✅ Listo' : '⏳ Sin confirmar');
+    fichas += r
+      ? ficha(r.nombre, r.personajeId, r.listo && r.conectado,
+          !r.conectado ? '🔌 Se desconectó' : r.listo ? '✅ Listo' : '⏳ Sin confirmar')
+      : '<div class="tarjeta centrado"><div style="font-size:52px;line-height:96px">👤</div><h4>Esperando…</h4><div class="meta">Todavía no entró nadie</div></div>';
+
+    var niveles = R.niveles.map(function (nv, i) {
+      var sel = nv.id === C.nivelId;
+      return '<span class="chip ' + (sel ? 'sel' : '') + '"' +
+        (C.esAnfitrion ? ' data-accion="carreraNivel" data-arg="' + esc(nv.id) + '"' : '') + '>' +
+        (i + 1) + '. ' + esc(nv.nombre) + '</span>';
+    }).join('');
+
+    var cabezal = C.esAnfitrion
+      ? '<p class="suave centrado" style="margin-bottom:4px">Código de la sala: decíselo al otro jugador</p>' +
+        '<div class="codigo-grande">' + esc(C.codigo) + '</div>'
+      : '<p class="suave centrado">Estás en la sala <b>' + esc(C.codigo) + '</b></p>';
+
+    var puedeEstarListo = C.conectada() && r && r.conectado;
+    var latencia = (C.red && C.red.rtt) ? '<span class="aviso">📶 ' + C.red.rtt + ' ms</span>' : '<span></span>';
+    // Al invitado, si se cortó, le ofrecemos volver a entrar con el mismo código
+    var botonPrincipal = (!C.conectada() && !C.esAnfitrion)
+      ? '<button class="btn principal" data-accion="carreraReintentar">🔄 &nbsp;Volver a entrar</button>'
+      : '<button class="btn principal" data-accion="carreraListo"' + (puedeEstarListo ? '' : ' disabled') + '>' +
+        (yo.listo ? '↩ No estoy listo' : '✅ Estoy listo') + '</button>';
+
+    UI.mostrar(
+      '<div class="panel">' +
+      '<div class="barra-superior"><h2>🏃 Carrera 1 vs 1</h2>' +
+      '<button class="btn volver" data-accion="carreraSalir">← Salir</button></div>' +
+      (C.error ? '<div class="mensaje">' + esc(C.error) + ' <button class="btn chico" data-accion="carreraReintentar" style="margin-left:8px">Probar de nuevo</button></div>' : '') +
+      (C.aviso ? '<div class="mensaje">' + esc(C.aviso) + '</div>' : '') +
+      cabezal +
+      '<div class="tarjetas" style="margin-top:16px">' + fichas + '</div>' +
+      '<h3>Nivel' + (C.esAnfitrion ? '' : ' (lo elige quien creó la sala)') + '</h3>' +
+      '<div class="opciones">' + niveles + '</div>' +
+      '<div class="pie">' + latencia + botonPrincipal + '</div>' +
+      '<p class="aviso">' + (puedeEstarListo
+        ? 'Cuando los dos estén listos arranca la cuenta regresiva.'
+        : 'Esperando a que se conecte el otro jugador…') + '</p>' +
+      '</div>');
+    UI.pantalla = 'carreraSala';
+  };
+
+  UI.pausaCarrera = function () {
+    UI.mostrar(
+      '<div class="panel angosto centrado">' +
+      '<h2 style="font-size:30px">🏃 La carrera sigue</h2>' +
+      '<p class="suave">En una carrera el reloj no se detiene: el otro jugador sigue corriendo mientras leés esto.</p>' +
+      '<div class="botones">' +
+      '<button class="btn principal" data-accion="continuar" autofocus>▶ &nbsp;Seguir corriendo</button>' +
+      '<button class="btn peligro" data-accion="abandonar">🏳 &nbsp;Abandonar la carrera</button>' +
+      '</div></div>', { transparente: true });
+    UI.pantalla = 'pausaCarrera';
+  };
+
+  UI.resultadosCarrera = function (res) {
+    var C = R.Carrera;
+    UI._resCarrera = res = res || UI._resCarrera;
+    if (!res) return UI.carreraSala();
+    var quien = C.resultado();
+    var rival = C.rival ? C.rival.nombre : 'El rival';
+    var suyo = C.resultadoRival;
+
+    var titulo =
+      quien === 'gane' ? '🏆 ¡Ganaste la carrera!' :
+      quien === 'perdi' ? '🏁 Ganó ' + esc(rival) :
+      quien === 'esperando' ? '⏳ Esperando a ' + esc(rival) + '…' :
+      quien === 'ninguno' ? '🏳 Ninguno llegó a la meta' :
+      'Carrera terminada';
+
+    function fila(etiqueta, mio, ajeno) {
+      return '<tr><td>' + etiqueta + '</td><td class="num">' + mio + '</td><td class="num">' + ajeno + '</td></tr>';
+    }
+    var sinDatos = '<span class="suave">—</span>';
+    var tabla = '<table class="tabla"><thead><tr><th></th><th class="num">Vos</th><th class="num">' + esc(rival) + '</th></tr></thead><tbody>' +
+      fila('⏱ Tiempo', R.formatearTiempo(res.tiempo), suyo ? R.formatearTiempo(suyo.tiempo) : sinDatos) +
+      fila('🏁 Llegó a la meta', res.completado ? '✓' : '✗', suyo ? (suyo.abandono ? 'abandonó' : suyo.llego ? '✓' : '✗') : sinDatos) +
+      fila('⭐ Estrellas', res.estrellas + '/' + res.totalEstrellas, suyo ? suyo.estrellas + '/' + res.totalEstrellas : sinDatos) +
+      fila('🏆 Puntos', res.puntos, suyo ? suyo.puntos : sinDatos) +
+      '</tbody></table>';
+
+    UI.mostrar(
+      '<div class="panel angosto centrado">' +
+      '<h2 style="font-size:32px">' + titulo + '</h2>' +
+      (quien === 'esperando' ? '<p class="suave">Todavía está corriendo.</p>'
+        : quien === 'sin-datos' ? '<p class="suave">No pudimos comparar: se cortó la conexión.</p>' : '') +
+      '<div class="contenedor-tabla" style="margin-top:14px">' + tabla + '</div>' +
+      '<div class="botones">' +
+      (C.conectada() ? '<button class="btn principal" data-accion="carreraRevancha">🔁 &nbsp;Revancha</button>' : '') +
+      '<button class="btn" data-accion="carreraSalir">← &nbsp;Salir de la carrera</button>' +
+      '</div></div>');
+    UI.pantalla = 'resultadosCarrera';
+  };
+
+  /* La red cambió algo (entró el rival, se puso listo, llegó su resultado): redibujamos. */
+  UI.alCambiarCarrera = function () {
+    var C = R.Carrera;
+    if (C.estado === 'corriendo') return;                 // durante la carrera manda el lienzo
+    var enCarrera = UI.pantalla === 'carreraConectando' || UI.pantalla === 'carreraSala' || UI.pantalla === 'resultadosCarrera';
+    if (!enCarrera) return;
+    // Si el código no existía o la red falló al entrar, volvemos a pedirlo
+    if (C.error && !C.conectada() && !C.esAnfitrion) {
+      var msg = C.error; C.error = '';
+      return UI.carreraUnirse(msg);
+    }
+    if (C.estado === 'inactiva') return UI.carrera();
+    if (UI.pantalla === 'resultadosCarrera' && C.estado === 'fin') return UI.resultadosCarrera(null);
+    UI.carreraSala();
   };
 
   /* ================= ACCIONES (delegación) ================= */
@@ -294,14 +484,14 @@
       R.app.iniciarPartida(def, { tipo: 'libre', nombre: nombreJugador() });
     },
 
-    elegirPersonaje: function (id) { datos().perfil.personaje = id; R.Storage.guardar(); UI.personalizar(); },
-    elegirTema: function (id) { datos().perfil.tema = id; R.Storage.guardar(); UI.personalizar(); },
+    elegirPersonaje: function (id) { datos().perfil.personaje = id; R.Storage.guardar(); repintarPersonalizar(); },
+    elegirTema: function (id) { datos().perfil.tema = id; R.Storage.guardar(); repintarPersonalizar(); },
     opcion: function (arg) {
       var partes = arg.split(':'), campo = partes[0], valor = partes[1];
       if (valor === 'true') valor = true; else if (valor === 'false') valor = false;
       datos().perfil[campo] = valor;
       if (campo === 'sonido') R.app.audio.silencio = !valor;
-      R.Storage.guardar(); UI.personalizar();
+      R.Storage.guardar(); repintarPersonalizar();
     },
 
     nuevaCompetencia: function () { UI.nuevaCompetencia(); },
@@ -330,11 +520,64 @@
       R.app.descargarJSON(archivo, c);
     },
     importar: function () { var inp = document.getElementById('archivo-importar'); if (inp) inp.click(); },
+    carrera: function () {
+      if (R.Carrera.activa()) return UI.carreraSala();
+      UI.carrera();
+    },
+    carreraCrear: function () { R.Carrera.crearSala(); UI.carreraConectando(); },
+    carreraUnirse: function () { UI.carreraUnirse(); },
+    carreraConectar: function () {
+      var campo = document.getElementById('carrera-codigo');
+      var cod = R.normalizarCodigo(campo && campo.value);
+      if (cod.length !== 4) {
+        document.getElementById('carrera-error').textContent = 'El código son 4 números.';
+        if (campo) campo.focus();
+        return;
+      }
+      R.Carrera.unirse(cod);
+      UI.carreraConectando();
+    },
+    carreraReintentar: function () {
+      var C = R.Carrera, anfitrion = C.esAnfitrion, cod = C.codigo;
+      C.salir();
+      if (anfitrion) { C.crearSala(); UI.carreraConectando(); }
+      else if (cod) { C.unirse(cod); UI.carreraConectando(); }
+      else UI.carreraUnirse();
+    },
+    carreraSalir: function () { R.Carrera.salir(); UI.carrera(); },
+    carreraListo: function () { R.Carrera.alternarListo(); },
+    carreraNivel: function (id) { R.Carrera.elegirNivel(id); },
+    carreraRevancha: function () { R.Carrera.pedirRevancha(); UI.carreraSala(); },
+
     jugarTurno: function (arg) {
       var t = JSON.parse(arg), def = nivel(t.nivel); if (!def) return;
       R.app.iniciarPartida(def, { tipo: 'competencia', id: t.id, jugador: t.jugador, nombre: t.jugador });
     }
   };
+
+  /* ---------- salir de una pantalla ---------- */
+  /* Un solo camino de salida para el botón ←, la tecla Esc y el botón Atrás. */
+  UI.volver = function () {
+    if (cont.classList.contains('oculto')) return false;
+    var b = cont.querySelector('.btn.volver');
+    if (!b || !acciones[b.dataset.accion]) return false;
+    R.app.audio.clic();
+    acciones[b.dataset.accion](b.dataset.arg, b);
+    return true;
+  };
+
+  window.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape' || R.app.partida()) return;   // jugando, Esc es pausa
+    if (UI.volver()) e.preventDefault();
+  });
+
+  window.addEventListener('popstate', function () {
+    if (R.app.partida()) {                               // jugando, Atrás pausa
+      try { history.pushState({ runner: 1 }, ''); } catch (e) { /* file:// */ }
+      return R.app.pausar();
+    }
+    UI.volver();
+  });
 
   cont.addEventListener('click', function (e) {
     var el = e.target.closest('[data-accion]');
@@ -370,6 +613,7 @@
 
   // Evitar que las teclas del juego muevan el scroll mientras hay pantallas con inputs
   cont.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && e.target.id === 'carrera-codigo') { e.preventDefault(); acciones.carreraConectar(); return; }
     if (e.key === 'Enter' && e.target.matches('input[type="text"]') && e.target.id === 'comp-nombre') {
       e.preventDefault(); document.getElementById('comp-jugadores').focus();
     }

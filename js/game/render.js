@@ -189,9 +189,12 @@
     this.meta(p);
     this.estrellas(p);
     this.enemigos(p);
+    this.rival(p);          // el fantasma del rival va detrás del jugador
     this.jugador(p);
     this.particulas(p);
     ctx.restore();
+    this.barraCarrera(p);
+    this.cuentaRegresiva(p);
     this.mensaje(p);
   };
 
@@ -383,6 +386,85 @@
       parpadeo: j.invulnerable > 0 && Math.floor(j.invulnerable * 12) % 2 === 0,
       muerto: p.estado === 'muriendo'
     });
+  };
+
+  /* =============== Carrera (dos jugadores) =============== */
+
+  /* El rival, medio transparente y con su nombre encima. */
+  Renderer.prototype.rival = function (p) {
+    var r = p.rival;
+    if (!r || !r.activo) return;
+    var ctx = this.ctx, cam = p.camara.x;
+    if (r.x + 80 < cam || r.x - 80 > cam + R.ANCHO) return;   // fuera de la pantalla: lo muestra la barra
+
+    ctx.save();
+    ctx.globalAlpha = 0.5;
+    R.dibujarPersonaje(ctx, r.personaje, r.x + 15, r.y + 44, {
+      anim: r.anim, enSuelo: r.enSuelo, mirando: r.mirando, vx: r.vx, t: r.t, muerto: r.muerto
+    });
+    ctx.globalAlpha = 0.9;
+    ctx.font = '800 13px system-ui, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.lineWidth = 4; ctx.lineJoin = 'round'; ctx.strokeStyle = 'rgba(0,0,0,0.65)';
+    ctx.strokeText(r.nombre, r.x + 15, r.y - 6);
+    ctx.fillStyle = '#9ad7ff'; ctx.fillText(r.nombre, r.x + 15, r.y - 6);
+    ctx.restore();
+  };
+
+  function marcaCarrera(ctx, x, y, w, prog, color, etiqueta, arriba) {
+    var mx = x + w * R.clamp(prog, 0, 1);
+    ctx.beginPath(); ctx.arc(mx, y, 7, 0, Math.PI * 2);
+    ctx.fillStyle = color; ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(0,0,0,0.55)'; ctx.stroke();
+    ctx.font = '800 12px system-ui, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = arriba ? 'bottom' : 'top';
+    var ty = arriba ? y - 10 : y + 10;
+    ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.strokeStyle = 'rgba(0,0,0,0.65)';
+    ctx.strokeText(etiqueta, mx, ty);
+    ctx.fillStyle = color; ctx.fillText(etiqueta, mx, ty);
+  }
+
+  /* Barra con el avance de los dos corredores hacia la meta. */
+  Renderer.prototype.barraCarrera = function (p) {
+    var r = p.rival;
+    if (!r || !r.activo) return;
+    var ctx = this.ctx;
+    var w = 400, h = 9, x = (R.ANCHO - w) / 2, y = 80;
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    rr(ctx, x - 26, y - 24, w + 62, h + 44, 14); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    rr(ctx, x, y - h / 2, w, h, 5); ctx.fill();
+    ctx.font = '16px system-ui, sans-serif';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText('🏁', x + w + 8, y);
+    marcaCarrera(ctx, x, y, w, r.prog, '#9ad7ff', r.nombre, true);
+    marcaCarrera(ctx, x, y, w, p.progreso(), '#ffd23f', 'VOS', false);
+    ctx.restore();
+  };
+
+  /* 3 · 2 · 1 antes de largar, igual en los dos dispositivos. */
+  Renderer.prototype.cuentaRegresiva = function (p) {
+    if (p.estado !== 'preparando') return;
+    var ctx = this.ctx;
+    var num = Math.max(1, Math.ceil(p.cuenta));
+    var frac = p.cuenta - Math.floor(p.cuenta);   // va de 1 a 0 dentro de cada segundo
+    ctx.save();
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = '800 26px system-ui, sans-serif';
+    ctx.lineWidth = 7; ctx.lineJoin = 'round'; ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+    ctx.strokeText('¡Preparados!', R.ANCHO / 2, R.ALTO * 0.3);
+    ctx.fillStyle = '#fff'; ctx.fillText('¡Preparados!', R.ANCHO / 2, R.ALTO * 0.3);
+
+    ctx.translate(R.ANCHO / 2, R.ALTO * 0.5);
+    ctx.scale(0.8 + frac * 0.5, 0.8 + frac * 0.5);
+    ctx.globalAlpha = Math.min(1, 0.35 + frac);
+    ctx.font = '900 110px system-ui, sans-serif';
+    ctx.lineWidth = 12; ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+    ctx.strokeText(String(num), 0, 0);
+    ctx.fillStyle = '#ffd23f'; ctx.fillText(String(num), 0, 0);
+    ctx.restore();
   };
 
   Renderer.prototype.particulas = function (p) {

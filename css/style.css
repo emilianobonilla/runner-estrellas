@@ -72,18 +72,23 @@ html, body {
 /* ---------- Pantallas ---------- */
 #pantallas {
   position: absolute; inset: 0; overflow: auto;
+  -webkit-overflow-scrolling: touch;
   background: rgba(10,14,24,.86);
-  display: flex; align-items: center; justify-content: center;
-  padding: 16px;
+  /* align-items:center cortaría por arriba los paneles más altos que la
+     pantalla (típico en vertical): centramos con margin:auto en .panel. */
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 12px;
 }
 #pantallas.oculto { display: none; }
 #pantallas.transparente { background: rgba(10,14,24,.55); }
 
 .panel {
+  --pad: 28px;
   width: min(820px, 100%);
+  margin: auto;            /* centra cuando entra, y deja scrollear cuando no */
   background: var(--panel);
   border-radius: var(--radio);
-  padding: 28px;
+  padding: var(--pad);
   box-shadow: 0 20px 60px rgba(0,0,0,.5);
   animation: aparecer .18s ease-out;
 }
@@ -115,11 +120,25 @@ p { line-height: 1.5; }
 .btn.principal:hover { background: #ffe07a; }
 .btn.secundario { background: var(--acento2); color: #06202a; }
 .btn.peligro { background: var(--peligro); color: #fff; }
+.btn[disabled] { opacity: .45; cursor: not-allowed; }
+.btn[disabled]:hover { background: var(--panel3); }
 .btn.chico { padding: 8px 14px; font-size: 15px; }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
 
-.barra-superior { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+.barra-superior {
+  position: sticky; top: 0; z-index: 5;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  /* se despega del panel para pegarse al borde de arriba al hacer scroll */
+  margin: calc(var(--pad) * -1) calc(var(--pad) * -1) 18px;
+  padding: 14px var(--pad);
+  background: var(--panel);
+  border-radius: var(--radio) var(--radio) 0 0;
+  border-bottom: 1px solid #33405e;
+  box-shadow: 0 8px 14px -10px rgba(0,0,0,.9);
+}
 .barra-superior h2 { margin: 0; }
+/* Botón de salir de la pantalla: grande y fácil de tocar con el dedo */
+.btn.volver { padding: 10px 16px; font-size: 16px; min-height: 44px; white-space: nowrap; flex: none; }
 
 label.campo { display: block; margin: 10px 0 16px; }
 label.campo span { display: block; color: var(--suave); font-size: 14px; margin-bottom: 6px; }
@@ -132,6 +151,20 @@ input[type="text"], textarea, select {
 input[type="text"]:focus, textarea:focus, select:focus { border-color: var(--acento2); }
 textarea { min-height: 110px; resize: vertical; }
 
+/* ---------- Carrera: código de sala ---------- */
+input.codigo {
+  text-align: center; font-size: 40px; font-weight: 800;
+  letter-spacing: 14px; text-indent: 14px;
+  font-family: ui-monospace, monospace;
+}
+.codigo-grande {
+  text-align: center; font-size: 56px; font-weight: 900;
+  letter-spacing: 12px; text-indent: 12px; color: var(--acento);
+  font-family: ui-monospace, monospace;
+  background: var(--panel2); border-radius: 14px; padding: 10px 6px;
+  user-select: all;
+}
+
 .tarjetas { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; }
 .tarjeta {
   background: var(--panel2); border-radius: 12px; padding: 14px;
@@ -143,6 +176,7 @@ textarea { min-height: 110px; resize: vertical; }
 .tarjeta h4 { margin: 0 0 4px; font-size: 18px; }
 .tarjeta .meta { color: var(--suave); font-size: 14px; }
 .tarjeta .num { position: absolute; top: 10px; right: 12px; font-size: 13px; color: var(--suave); }
+.tarjeta .num + h4 { padding-right: 54px; }   /* deja lugar al "Nivel 1" de la esquina */
 .tarjeta canvas { display: block; margin: 0 auto 6px; }
 .tarjeta .check { color: var(--ok); }
 .muestra-tema { height: 54px; border-radius: 8px; margin-bottom: 8px; position: relative; overflow: hidden; }
@@ -178,8 +212,23 @@ table.tabla { width: 100%; border-collapse: collapse; margin-top: 8px; font-size
 .ayuda { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 24px; }
 @media (max-width: 640px) {
   .ayuda { grid-template-columns: 1fr; }
-  .panel { padding: 20px; }
+  .panel { --pad: 16px; }
   .titulo { font-size: 34px; }
+  .subtitulo { margin-bottom: 18px; }
+  h2 { font-size: 21px; }
+  h3 { margin: 16px 0 8px; font-size: 15px; }
+  /* Dos columnas de tarjetas en vez de una: la pantalla queda mucho más corta */
+  .tarjetas { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+  .tarjeta { padding: 10px; }
+  .tarjeta h4 { font-size: 16px; }
+  .tarjeta .meta { font-size: 13px; }
+  .tarjeta canvas { width: 76px; height: 76px; }
+  .muestra-tema { height: 42px; }
+  .chip { padding: 9px 13px; font-size: 15px; }
+  .btn { padding: 12px 18px; font-size: 17px; }
+  input.codigo { font-size: 32px; letter-spacing: 10px; text-indent: 10px; }
+  .codigo-grande { font-size: 42px; letter-spacing: 8px; text-indent: 8px; }
+  .gran-numero { font-size: 46px; }
 }
 .pie { margin-top: 20px; display: flex; gap: 10px; justify-content: space-between; flex-wrap: wrap; }
 .mensaje { background: var(--panel2); border-left: 4px solid var(--acento2); padding: 10px 14px; border-radius: 8px; margin: 10px 0; }

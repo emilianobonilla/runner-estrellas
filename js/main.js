@@ -77,12 +77,13 @@
   function actualizarHUD(p) {
     setHUD('estrellas', p.estrellas + '/' + p.totalEstrellas);
     setHUD('puntos', String(p.puntos));
-    setHUD('vidas', 'x' + p.vidas);
+    setHUD('vidas', p.infinitas ? '∞' : 'x' + p.vidas);
     setHUD('tiempo', R.formatearTiempo(p.tiempo));
   }
   document.getElementById('hud-pausa').addEventListener('click', function () { pausar(); });
   input.onPausa = function () {
     if (!partida) return;
+    if (esCarrera()) { if (R.UI.pantalla === 'pausaCarrera') continuar(); else R.UI.pausaCarrera(); return; }
     if (partida.estado === 'jugando') pausar();
     else if (partida.estado === 'pausa') continuar();
   };
@@ -98,16 +99,23 @@
   }
 
   /* ---------- flujo de partida ---------- */
+  function esCarrera() { return !!(actual && actual.contexto.tipo === 'carrera'); }
+
   function iniciarPartida(nivelDef, contexto) {
     contexto = contexto || { tipo: 'libre', nombre: datos.perfil.nombre || 'Anónimo' };
+    var carrera = contexto.tipo === 'carrera';
     actual = { nivelDef: nivelDef, contexto: contexto };
     pantallaCompletaAlJugar();
     R.UI.ocultar();
     partida = new R.Partida(nivelDef, {
       personaje: personajeActual(), tema: temaPara(nivelDef), audio: audio, input: input,
       nombre: contexto.nombre,
+      infinitas: carrera,                                   // en la carrera se reaparece siempre
+      cuenta: carrera ? (contexto.cuenta || 3) : 0,
+      alLlegar: carrera ? function (p) { R.Carrera.avisarMeta(p); } : null,
       alTerminar: function (res) { terminar(res); }
     });
+    if (carrera) R.Carrera.usarPartida(partida);
     ultimoHUD = {};
     hud.nombre.textContent = contexto.nombre || '';
     hudEl.classList.remove('oculto');
@@ -125,16 +133,24 @@
     var esRecord = R.Storage.registrarPuntaje(res);
     var mejoro = false;
     if (ctx.tipo === 'competencia') mejoro = R.Storage.registrarResultadoCompetencia(ctx.id, ctx.jugador, res);
+    if (ctx.tipo === 'carrera') { R.Carrera.terminar(res); return R.UI.resultadosCarrera(res); }
     R.UI.resultados(res, ctx, esRecord, mejoro);
   }
 
-  function pausar() { if (!partida || partida.estado !== 'jugando') return; partida.pausar(); R.UI.pausa(); }
+  // En la carrera el reloj no se detiene: en vez de pausar mostramos un cartel encima.
+  function pausar() {
+    if (!partida) return;
+    if (esCarrera()) return R.UI.pausaCarrera();
+    if (partida.estado !== 'jugando') return;
+    partida.pausar(); R.UI.pausa();
+  }
   function continuar() { if (!partida) return; partida.continuar(); R.UI.ocultar(); input.reiniciar(); }
   function reiniciar() { if (actual) iniciarPartida(actual.nivelDef, actual.contexto); }
   function abandonar() {
     partida = null; input.activo = false;
     hudEl.classList.add('oculto'); actualizarTactil();
     var ctx = actual && actual.contexto;
+    if (ctx && ctx.tipo === 'carrera') { R.Carrera.abandonar(); return R.UI.carreraSala(); }
     if (ctx && ctx.tipo === 'competencia') R.UI.verCompetencia(ctx.id); else R.UI.menu();
   }
 
@@ -152,8 +168,12 @@
           partida.actualizar(PASO);
           acumulado -= PASO; pasos++;
         }
-        if (partida) { render.dibujar(partida, dt); actualizarHUD(partida); }
+        if (partida) {
+          R.Carrera.tick(partida, dt);
+          render.dibujar(partida, dt); actualizarHUD(partida);
+        }
       } else {
+        if (R.Carrera.activa()) R.Carrera.descontarEspera(dt);
         render.escenaMenu(temaPara(R.niveles[0]), personajeActual(), dt);
       }
     } catch (e) {
@@ -168,6 +188,7 @@
     datos: datos, audio: audio, input: input,
     iniciarPartida: iniciarPartida, pausar: pausar, continuar: continuar, reiniciar: reiniciar, abandonar: abandonar,
     personajeActual: personajeActual, temaPara: temaPara, actualizarTactil: actualizarTactil,
+    esCarrera: esCarrera,
     fsDisponible: fsDisponible,
     partida: function () { return partida; },
 
@@ -192,6 +213,14 @@
       r.readAsText(archivo);
     }
   };
+
+  /* ---------- carrera entre dos dispositivos ---------- */
+  R.Carrera.onArrancar = function (nivelDef, cuenta) {
+    iniciarPartida(nivelDef, { tipo: 'carrera', nombre: R.Carrera.yo.nombre, cuenta: cuenta });
+  };
+  R.Carrera.onCambio = function () { if (R.UI.alCambiarCarrera) R.UI.alCambiarCarrera(); };
+  // Al cerrar la pestaña avisamos al rival en vez de dejarlo esperando
+  window.addEventListener('pagehide', function () { if (R.Carrera.activa()) R.Carrera.salir(); });
 
   R.UI.menu();
   requestAnimationFrame(frame);
