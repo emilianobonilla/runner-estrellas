@@ -21,6 +21,7 @@ RUNNER.registrarNivel({
   nombre: 'El Prado',
   descripcion: 'Un paseo tranquilo para aprender a correr y saltar.',
   tema: 'prado',
+  dificultad: 1,
   tiempoObjetivo: 60,   // segundos: si terminás antes, ganás bonus de tiempo
   mapa: [
     '..............................................................................................................',

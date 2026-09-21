@@ -5,6 +5,7 @@ RUNNER.registrarNivel({
   nombre: 'La Cueva',
   descripcion: 'Oscura y con más pinchos. Cuidado con los pozos.',
   tema: 'cueva',
+  dificultad: 1,
   tiempoObjetivo: 75,
   mapa: [
     'GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG',

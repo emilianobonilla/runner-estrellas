@@ -71,6 +71,13 @@
     UI.refrescar = UI.menu;
   };
 
+  /* Dificultad del nivel en estrellitas (1 a 5). */
+  function dificultad(n) {
+    n = Math.max(1, Math.min(5, n || 1));
+    return '<span class="dificultad" title="Dificultad ' + n + ' de 5">' +
+      new Array(n + 1).join('★') + new Array(6 - n).join('☆') + '</span>';
+  }
+
   /* ================= JUGAR: elegir nivel ================= */
   UI.jugar = function () {
     var prog = datos().progreso;
@@ -80,6 +87,7 @@
       return '<div class="tarjeta" data-accion="iniciarNivel" data-arg="' + esc(n.id) + '">' +
         '<span class="num">Nivel ' + (i + 1) + '</span>' +
         '<h4>' + esc(n.nombre) + (p.completado ? ' <span class="check">✓</span>' : '') + '</h4>' +
+        '<div class="meta">' + dificultad(n.dificultad) + '</div>' +
         '<div class="meta">' + esc(n.descripcion || '') + '</div>' +
         '<div class="meta" style="margin-top:8px">⭐ ' + (p.mejorEstrellas || 0) + '/' + total + ' &nbsp; 🏆 ' + (p.mejorPuntaje || 0) + '</div>' +
         '</div>';

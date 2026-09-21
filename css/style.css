@@ -233,3 +233,6 @@ table.tabla { width: 100%; border-collapse: collapse; margin-top: 8px; font-size
 .pie { margin-top: 20px; display: flex; gap: 10px; justify-content: space-between; flex-wrap: wrap; }
 .mensaje { background: var(--panel2); border-left: 4px solid var(--acento2); padding: 10px 14px; border-radius: 8px; margin: 10px 0; }
 .aviso { color: var(--suave); font-size: 14px; }
+
+/* Dificultad del nivel (tarjetas de "Elegí un nivel") */
+.dificultad { color: var(--acento2); letter-spacing: 2px; font-size: 14px; }
