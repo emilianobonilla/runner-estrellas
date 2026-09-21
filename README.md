@@ -51,8 +51,11 @@ js/main.js            Arranque y bucle del juego
 
 ## Crear un nivel nuevo
 
-1. Copiá `data/levels/nivel-03-nubes.js` a `data/levels/nivel-04-loquesea.js`.
-2. Cambiá `id`, `orden`, `nombre`, `descripcion`, `tema` y `tiempoObjetivo`.
+El juego trae 10 niveles (`nivel-01` a `nivel-10`), de dificultad 1 a 5. Para agregar otro:
+
+1. Copiá `data/levels/nivel-04-bosque.js` a `data/levels/nivel-11-loquesea.js`.
+2. Cambiá `id`, `orden`, `nombre`, `descripcion`, `tema`, `dificultad` (1 a 5, se
+   muestra en estrellitas en la lista de niveles) y `tiempoObjetivo`.
 3. Dibujá el `mapa` (11 filas recomendadas; cada carácter es una celda de 48 px):
 
 ```
@@ -60,7 +63,7 @@ js/main.js            Arranque y bucle del juego
 ^  pincho       E  enemigo       C  checkpoint    P  inicio      F  meta
 ```
 
-4. Agregá la línea `<script src="data/levels/nivel-04-loquesea.js"></script>` en
+4. Agregá la línea `<script src="data/levels/nivel-11-loquesea.js"></script>` en
    `index.html`, debajo de los otros niveles. Listo: aparece en la lista de niveles,
    en el ranking y en las competencias.
 
@@ -75,6 +78,20 @@ Consejos de diseño (medidos con la física actual):
 - No pongas una plataforma baja (a 2 o 3 celdas) justo antes de un pincho o pozo:
   el jugador se golpea la cabeza y no llega.
 - La fila de abajo sin `G` es un pozo (caer = perder una vida).
+- Para chicos de 6 a 8 años conviene: pozos de 3 celdas, plataformas de aterrizaje de 3
+  celdas o más, un solo desafío por vez (dejá 4 o 5 celdas de descanso entre uno y otro)
+  y un checkpoint cada 30 o 40 celdas.
+
+### Probar un nivel sin jugarlo
+
+```
+node herramientas/probar-niveles.js
+```
+
+Revisa todos los niveles contra esas reglas (pozos, techos, escalones, estrellas fuera de
+alcance, enemigos mal puestos) y además los juega con un bot que usa la física real del
+juego: si el bot no llega a la meta, el nivel es imposible o tiene un salto demasiado justo.
+No es parte del juego (`index.html` no lo carga) y no necesita internet ni instalar nada.
 
 ## Crear un personaje nuevo
 

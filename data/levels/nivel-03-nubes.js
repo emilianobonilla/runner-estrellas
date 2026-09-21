@@ -5,6 +5,7 @@ RUNNER.registrarNivel({
   nombre: 'Las Nubes',
   descripcion: 'Plataformas flotantes y mucho vacío. ¡No mires abajo!',
   tema: 'nubes',
+  dificultad: 2,
   tiempoObjetivo: 70,
   mapa: [
     '....................................................................................................',
