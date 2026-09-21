@@ -50,5 +50,5 @@ RUNNER.registrarPersonaje({
   descripcion: 'Gato con muchas vidas.',
   formaCabeza: 'redonda',
   accesorio: 'orejas',
-  colores: { piel: '#f5a442', pelo: '#f5a442', remera: '#57cc99', pantalon: '#264653', zapatos: '#f5a442', accesorio: '#f5a442' }
+  colores: { piel: '#f89319', pelo: '#f89319', remera: '#57cc99', pantalon: '#264653', zapatos: '#f89319', accesorio: '#f5a442' }
 });

@@ -1,10 +1,10 @@
-/* NIVEL 6 — El Nevado. Ver leyenda y reglas de diseño en nivel-01-prado.js */
+/* NIVEL 3-2 — Marea Alta (Mundo 3). Ver leyenda y reglas de diseño en nivel-01-prado.js */
 RUNNER.registrarNivel({
   id: 'nivel-06',
   orden: 6,
-  nombre: 'El Nevado',
-  descripcion: 'Escaleras de nieve, subidas y bajadas. Hay que mirar bien antes de saltar.',
-  tema: 'nieve',
+  nombre: 'Marea Alta',
+  descripcion: 'Escalones de arena, subidas y bajadas. Hay que mirar bien antes de saltar.',
+  mundo: 'm3',          // estética del mundo (ver data/worlds.js)
   dificultad: 3,
   tiempoObjetivo: 95,
   mapa: [

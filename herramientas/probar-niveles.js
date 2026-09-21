@@ -29,6 +29,7 @@ sandbox.window = sandbox;
 vm.createContext(sandbox);
 const cargar = (rel) => vm.runInContext(fs.readFileSync(path.join(BASE, rel), 'utf8'), sandbox, { filename: rel });
 ['js/core/util.js', 'js/game/entities.js', 'js/game/level.js', 'js/game/player.js'].forEach(cargar);
+cargar('data/worlds.js');   // los niveles sacan su estética del mundo
 const archivos = fs.readdirSync(path.join(BASE, 'data/levels')).filter((f) => f.endsWith('.js')).sort();
 archivos.forEach((f) => cargar('data/levels/' + f));
 const R = sandbox.window.RUNNER, T = R.TILE;
@@ -233,8 +234,9 @@ function resolver(def) {
    Informe
    ============================================================ */
 let problemas = 0;
-R.niveles.sort((a, b) => (a.orden || 0) - (b.orden || 0)).forEach((def) => {
-  const nombre = `${def.orden}. ${def.nombre}`.padEnd(16);
+R.ordenarNiveles();
+R.niveles.forEach((def) => {
+  const nombre = `${R.etiquetaNivel(def)}. ${def.nombre}`.padEnd(22);
   const errores = revisar(def);
   const { mejor, corridas, ajustes } = resolver(def);
   const nivel = new R.Nivel(def);

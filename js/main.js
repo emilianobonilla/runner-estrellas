@@ -15,7 +15,7 @@
   var actual = null;   // { nivelDef, contexto } de la partida en curso o recién terminada
 
   audio.silencio = !datos.perfil.sonido;
-  R.niveles.sort(function (a, b) { return (a.orden || 0) - (b.orden || 0); });
+  R.ordenarNiveles();   // primero por mundo, después por el orden del nivel
 
   /* ---------- tamaño ---------- */
   function ajustar() {
@@ -95,7 +95,8 @@
   function temaPara(nivelDef) {
     var pref = datos.perfil.tema;
     if (pref && pref !== 'auto' && R.temas[pref]) return R.temas[pref];
-    return R.temas[nivelDef && nivelDef.tema] || R.temas[Object.keys(R.temas)[0]];
+    // Si no hay preferencia, manda la estética del mundo del nivel
+    return R.temaDe(nivelDef) || R.temas[Object.keys(R.temas)[0]];
   }
 
   /* ---------- flujo de partida ---------- */

@@ -1,10 +1,10 @@
-/* NIVEL 4 — El Bosque. Ver leyenda y reglas de diseño en nivel-01-prado.js */
+/* NIVEL 2-2 — Túnel Profundo (Mundo 2). Ver leyenda y reglas de diseño en nivel-01-prado.js */
 RUNNER.registrarNivel({
   id: 'nivel-04',
   orden: 4,
-  nombre: 'El Bosque',
-  descripcion: 'Troncos para trepar y dos pozos cortos. Tranquilo, hay lugar para tomar carrera.',
-  tema: 'bosque',
+  nombre: 'Túnel Profundo',
+  descripcion: 'Columnas para trepar y dos pozos cortos. Tranquilo, hay lugar para tomar carrera.',
+  mundo: 'm2',          // estética del mundo (ver data/worlds.js)
   dificultad: 2,
   tiempoObjetivo: 80,
   mapa: [
@@ -15,8 +15,8 @@ RUNNER.registrarNivel({
     '................................................................................................................',
     '................................................................................................................',
     '...........*.....................*.................**.............**...................**.......................',
-    '..........###...................###...............####...........####.................####............*.........',
-    '..............................##.........*..................###................*.....................###........',
+    '..........###...................###......*........####...........####..........*......####............*.........',
+    '..............................##............................###......................................###........',
     '...P..*............E...*..^..........C........E..........^.......*......E..C.................E..^^..........F...',
     'GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG...GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG...GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG'
   ]

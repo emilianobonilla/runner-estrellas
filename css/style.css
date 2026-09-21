@@ -176,7 +176,7 @@ input.codigo {
 .tarjeta h4 { margin: 0 0 4px; font-size: 18px; }
 .tarjeta .meta { color: var(--suave); font-size: 14px; }
 .tarjeta .num { position: absolute; top: 10px; right: 12px; font-size: 13px; color: var(--suave); }
-.tarjeta .num + h4 { padding-right: 54px; }   /* deja lugar al "Nivel 1" de la esquina */
+.tarjeta .num + h4 { padding-right: 44px; }   /* deja lugar al "1-2" de la esquina */
 .tarjeta canvas { display: block; margin: 0 auto 6px; }
 .tarjeta .check { color: var(--ok); }
 .muestra-tema { height: 54px; border-radius: 8px; margin-bottom: 8px; position: relative; overflow: hidden; }
@@ -236,3 +236,15 @@ table.tabla { width: 100%; border-collapse: collapse; margin-top: 8px; font-size
 
 /* Dificultad del nivel (tarjetas de "Elegí un nivel") */
 .dificultad { color: var(--acento2); letter-spacing: 2px; font-size: 14px; }
+
+/* Mundos: grupos de niveles que comparten estética (pantalla "Elegí un nivel") */
+.mundo { margin-top: 22px; }
+.mundo-cabezal { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.mundo-cabezal .muestra-tema { width: 86px; flex: none; height: 48px; margin: 0; }
+.mundo-texto h3 { margin: 0 0 2px; color: var(--texto); }
+.mundo-texto .meta { color: var(--suave); font-size: 14px; }
+@media (max-width: 620px) {
+  .mundo { margin-top: 16px; }
+  .mundo-cabezal .muestra-tema { width: 64px; height: 38px; }
+  .mundo-texto .meta { font-size: 13px; }
+}
