@@ -11,9 +11,56 @@ window.RUNNER = window.RUNNER || {};
   R.niveles = [];
   R.personajes = [];
   R.temas = {};
+  R.mundos = [];
   R.registrarNivel = function (n) { R.niveles.push(n); };
   R.registrarPersonaje = function (p) { R.personajes.push(p); };
   R.registrarTema = function (t) { R.temas[t.id] = t; };
+  R.registrarMundo = function (m) { R.mundos.push(m); };
+
+  /* ---------- mundos: grupos de niveles con la misma estética ---------- */
+
+  /* Mundo al que pertenece un nivel (null si el nivel no declara mundo). */
+  R.mundoDe = function (nivelDef) {
+    var id = nivelDef && nivelDef.mundo;
+    if (!id) return null;
+    return R.mundos.filter(function (m) { return m.id === id; })[0] || null;
+  };
+
+  /* Tema de un nivel: el suyo propio si lo declara, si no el de su mundo. */
+  R.temaDe = function (nivelDef) {
+    var m = R.mundoDe(nivelDef);
+    var id = (nivelDef && nivelDef.tema) || (m && m.tema);
+    return R.temas[id] || null;
+  };
+
+  /* Dificultad 1 a 5: la del nivel o, si no la declara, la de su mundo. */
+  R.dificultadDe = function (nivelDef) {
+    var m = R.mundoDe(nivelDef);
+    return (nivelDef && nivelDef.dificultad) || (m && m.dificultad) || 1;
+  };
+
+  /* Niveles de un mundo, en orden. */
+  R.nivelesDe = function (mundoId) {
+    return R.niveles.filter(function (n) { return n.mundo === mundoId; });
+  };
+
+  /* Etiqueta estilo Mario: "2-1" = primer nivel del mundo 2.
+     Si el nivel no tiene mundo, devuelve su número global. */
+  R.etiquetaNivel = function (nivelDef) {
+    var m = R.mundoDe(nivelDef);
+    if (!m) return String(R.niveles.indexOf(nivelDef) + 1);
+    return m.orden + '-' + (R.nivelesDe(m.id).indexOf(nivelDef) + 1);
+  };
+
+  /* Orden de juego: primero por mundo, después por el orden del nivel. */
+  R.ordenarNiveles = function () {
+    R.niveles.sort(function (a, b) {
+      var ma = R.mundoDe(a), mb = R.mundoDe(b);
+      var d = ((ma && ma.orden) || 0) - ((mb && mb.orden) || 0);
+      return d !== 0 ? d : (a.orden || 0) - (b.orden || 0);
+    });
+    R.mundos.sort(function (a, b) { return (a.orden || 0) - (b.orden || 0); });
+  };
 
   R.clamp = function (v, a, b) { return v < a ? a : v > b ? b : v; };
   R.lerp = function (a, b, t) { return a + (b - a) * t; };

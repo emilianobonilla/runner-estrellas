@@ -1,10 +1,10 @@
-/* NIVEL 3 — Las Nubes. Ver leyenda en nivel-01-prado.js */
+/* NIVEL 2-1 — La Cueva (Mundo 2: Cuevas Profundas). Ver leyenda en nivel-01-prado.js */
 RUNNER.registrarNivel({
   id: 'nivel-03',
   orden: 3,
-  nombre: 'Las Nubes',
-  descripcion: 'Plataformas flotantes y mucho vacío. ¡No mires abajo!',
-  tema: 'nubes',
+  nombre: 'La Cueva',
+  descripcion: 'Rocas flotando sobre el vacío. ¡No mires abajo!',
+  mundo: 'm2',          // estética del mundo (ver data/worlds.js)
   dificultad: 2,
   tiempoObjetivo: 70,
   mapa: [

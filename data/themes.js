@@ -4,6 +4,13 @@
    Cada tema define los colores del escenario. Para cambiar la
    estética alcanza con editar colores o agregar un tema nuevo.
 
+   Los temas NO se eligen nivel por nivel: los usa un mundo entero
+   (data/worlds.js), así varios niveles seguidos comparten estética,
+   como en Mario Bros. Hoy los mundos usan: prado, cueva, playa,
+   volcan y castillo. Los otros (nubes, bosque, nieve, ciudad,
+   espacio) quedan listos para los mundos que se agreguen y ya se
+   pueden elegir a mano desde "Personalizar".
+
    Opcional: "imagenes" permite reemplazar el dibujo procedural
    por imágenes propias (PNG) ubicadas en assets/img/:
      imagenes: { fondo: 'assets/img/fondo.png',   // se repite horizontalmente

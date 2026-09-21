@@ -1,10 +1,10 @@
-/* NIVEL 7 — La Ciudad. Ver leyenda y reglas de diseño en nivel-01-prado.js */
+/* NIVEL 4-1 — Salto de Rocas (Mundo 4: Tierra del Volcán). Ver leyenda y reglas de diseño en nivel-01-prado.js */
 RUNNER.registrarNivel({
   id: 'nivel-07',
   orden: 7,
-  nombre: 'La Ciudad',
-  descripcion: 'Saltos de techo en techo entre los edificios. Mirá la altura de cada uno.',
-  tema: 'ciudad',
+  nombre: 'Salto de Rocas',
+  descripcion: 'Saltos de roca en roca por encima de la lava. Mirá la altura de cada una.',
+  mundo: 'm4',          // estética del mundo (ver data/worlds.js)
   dificultad: 4,
   tiempoObjetivo: 100,
   mapa: [

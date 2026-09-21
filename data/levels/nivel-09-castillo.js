@@ -1,10 +1,10 @@
-/* NIVEL 9 — El Espacio. Ver leyenda y reglas de diseño en nivel-01-prado.js */
+/* NIVEL 5-1 — Las Torres (Mundo 5: Castillo de las Estrellas). Ver leyenda y reglas de diseño en nivel-01-prado.js */
 RUNNER.registrarNivel({
   id: 'nivel-09',
   orden: 9,
-  nombre: 'El Espacio',
-  descripcion: 'Todo flota y abajo no hay nada. Saltá de plataforma en plataforma sin apurarte.',
-  tema: 'espacio',
+  nombre: 'Las Torres',
+  descripcion: 'Todo flota y abajo no hay nada. Saltá de torre en torre sin apurarte.',
+  mundo: 'm5',          // estética del mundo (ver data/worlds.js)
   dificultad: 5,
   tiempoObjetivo: 115,
   mapa: [

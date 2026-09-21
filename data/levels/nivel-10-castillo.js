@@ -1,10 +1,10 @@
-/* NIVEL 10 — El Castillo. Ver leyenda y reglas de diseño en nivel-01-prado.js */
+/* NIVEL 5-2 — El Castillo (Mundo 5). Ver leyenda y reglas de diseño en nivel-01-prado.js */
 RUNNER.registrarNivel({
   id: 'nivel-10',
   orden: 10,
   nombre: 'El Castillo',
   descripcion: 'El desafío final: un poco de todo y una torre para llegar a la bandera.',
-  tema: 'castillo',
+  mundo: 'm5',          // estética del mundo (ver data/worlds.js)
   dificultad: 5,
   tiempoObjetivo: 130,
   mapa: [

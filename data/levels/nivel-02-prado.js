@@ -1,10 +1,10 @@
-/* NIVEL 2 — La Cueva. Ver leyenda en nivel-01-prado.js */
+/* NIVEL 1-2 — Sendero del Prado (Mundo 1). Ver leyenda en nivel-01-prado.js */
 RUNNER.registrarNivel({
   id: 'nivel-02',
   orden: 2,
-  nombre: 'La Cueva',
-  descripcion: 'Oscura y con más pinchos. Cuidado con los pozos.',
-  tema: 'cueva',
+  nombre: 'Sendero del Prado',
+  descripcion: 'Más pinchos y algún pozo, pero todavía con lugar para tomar carrera.',
+  mundo: 'm1',          // estética del mundo (ver data/worlds.js)
   dificultad: 1,
   tiempoObjetivo: 75,
   mapa: [

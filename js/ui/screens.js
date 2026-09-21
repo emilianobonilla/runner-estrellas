@@ -78,25 +78,47 @@
       new Array(n + 1).join('★') + new Array(6 - n).join('☆') + '</span>';
   }
 
+  /* Nombre corto de un nivel para listas: "2-1. La Cueva" */
+  function etiqueta(n) { return R.etiquetaNivel(n) + '. ' + n.nombre; }
+
   /* ================= JUGAR: elegir nivel ================= */
   UI.jugar = function () {
     var prog = datos().progreso;
-    var tarjetas = R.niveles.map(function (n, i) {
+
+    function tarjeta(n) {
       var p = prog[n.id] || {};
       var total = new R.Nivel(n).estrellas.length;
       return '<div class="tarjeta" data-accion="iniciarNivel" data-arg="' + esc(n.id) + '">' +
-        '<span class="num">Nivel ' + (i + 1) + '</span>' +
+        '<span class="num">' + esc(R.etiquetaNivel(n)) + '</span>' +
         '<h4>' + esc(n.nombre) + (p.completado ? ' <span class="check">✓</span>' : '') + '</h4>' +
-        '<div class="meta">' + dificultad(n.dificultad) + '</div>' +
+        '<div class="meta">' + dificultad(R.dificultadDe(n)) + '</div>' +
         '<div class="meta">' + esc(n.descripcion || '') + '</div>' +
         '<div class="meta" style="margin-top:8px">⭐ ' + (p.mejorEstrellas || 0) + '/' + total + ' &nbsp; 🏆 ' + (p.mejorPuntaje || 0) + '</div>' +
         '</div>';
+    }
+
+    /* Los niveles van agrupados por mundo: todos los de un mundo comparten estética. */
+    function grupo(titulo, desc, tema, niveles) {
+      if (!niveles.length) return '';
+      return '<section class="mundo">' +
+        '<div class="mundo-cabezal">' + (tema ? muestraTema(tema) : '') +
+        '<div class="mundo-texto"><h3>' + esc(titulo) + '</h3>' +
+        (desc ? '<div class="meta">' + esc(desc) + '</div>' : '') + '</div></div>' +
+        '<div class="tarjetas">' + niveles.map(tarjeta).join('') + '</div>' +
+        '</section>';
+    }
+
+    var grupos = R.mundos.map(function (m) {
+      return grupo('Mundo ' + m.orden + ' · ' + m.nombre, m.descripcion, R.temas[m.tema], R.nivelesDe(m.id));
     }).join('');
+    // Por las dudas: niveles que todavía no pertenecen a ningún mundo
+    grupos += grupo('Otros niveles', '', null, R.niveles.filter(function (n) { return !R.mundoDe(n); }));
+
     UI.mostrar(
       '<div class="panel">' +
       '<div class="barra-superior"><h2>Elegí un nivel</h2>' + botonVolver('menu') + '</div>' +
       '<label class="campo"><span>Tu nombre</span><input type="text" maxlength="20" data-campo="nombre" placeholder="Escribí tu nombre" value="' + esc(datos().perfil.nombre) + '"></label>' +
-      '<div class="tarjetas">' + tarjetas + '</div>' +
+      grupos +
       '<p class="aviso" style="margin-top:16px">Personaje: <b>' + esc(personajeActual().nombre) + '</b> · <a href="#" data-accion="personalizar" style="color:var(--acento2)">cambiar</a></p>' +
       '</div>');
   };
@@ -128,7 +150,7 @@
       '<h3>Controles táctiles</h3><div class="opciones">' + chip('tactil', 'auto', 'Automático') + chip('tactil', 'si', 'Siempre') + chip('tactil', 'no', 'Nunca') + '</div>' +
       (R.app.fsDisponible ? '<h3>Pantalla completa</h3><div class="opciones">' + chip('pantallaCompleta', true, '⛶ Al empezar un nivel') + chip('pantallaCompleta', false, 'Nunca') + '</div>' : '') +
       avisoIOS() +
-      '<p class="aviso" style="margin-top:16px">Para agregar personajes o temas nuevos, editá <code>data/characters.js</code> y <code>data/themes.js</code>.</p>' +
+      '<p class="aviso" style="margin-top:16px">Cada mundo tiene su estética. Para cambiarla o agregar mundos nuevos, editá <code>data/themes.js</code> y <code>data/worlds.js</code>.</p>' +
       '</div>');
   };
 
@@ -144,7 +166,7 @@
   UI.ranking = function (nivelId) {
     nivelId = nivelId || (R.niveles[0] && R.niveles[0].id);
     var chips = R.niveles.map(function (n) {
-      return '<span class="chip ' + (n.id === nivelId ? 'sel' : '') + '" data-accion="ranking" data-arg="' + esc(n.id) + '">' + esc(n.nombre) + '</span>';
+      return '<span class="chip ' + (n.id === nivelId ? 'sel' : '') + '" data-accion="ranking" data-arg="' + esc(n.id) + '">' + esc(etiqueta(n)) + '</span>';
     }).join('');
     var lista = (datos().ranking[nivelId] || []).slice(0, 10);
     var filas = lista.map(function (r, i) {
@@ -188,8 +210,8 @@
   };
 
   UI.nuevaCompetencia = function () {
-    var chips = R.niveles.map(function (n, i) {
-      return '<label class="chip sel"><input type="checkbox" name="niveles" value="' + esc(n.id) + '" checked> ' + (i + 1) + '. ' + esc(n.nombre) + '</label>';
+    var chips = R.niveles.map(function (n) {
+      return '<label class="chip sel"><input type="checkbox" name="niveles" value="' + esc(n.id) + '" checked> ' + esc(etiqueta(n)) + '</label>';
     }).join('');
     UI.mostrar(
       '<div class="panel">' +
@@ -369,11 +391,11 @@
           !r.conectado ? '🔌 Se desconectó' : r.listo ? '✅ Listo' : '⏳ Sin confirmar')
       : '<div class="tarjeta centrado"><div style="font-size:52px;line-height:96px">👤</div><h4>Esperando…</h4><div class="meta">Todavía no entró nadie</div></div>';
 
-    var niveles = R.niveles.map(function (nv, i) {
+    var niveles = R.niveles.map(function (nv) {
       var sel = nv.id === C.nivelId;
       return '<span class="chip ' + (sel ? 'sel' : '') + '"' +
         (C.esAnfitrion ? ' data-accion="carreraNivel" data-arg="' + esc(nv.id) + '"' : '') + '>' +
-        (i + 1) + '. ' + esc(nv.nombre) + '</span>';
+        esc(etiqueta(nv)) + '</span>';
     }).join('');
 
     var cabezal = C.esAnfitrion

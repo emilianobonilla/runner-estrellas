@@ -37,8 +37,9 @@ juntar todas las estrellas. Tenés 3 vidas; los checkpoints guardan el avance.
 index.html            Página principal (lista de scripts: agregá aquí los archivos nuevos)
 css/style.css         Estilos de menús y HUD
 data/themes.js        Estéticas (colores del escenario, imágenes opcionales)
+data/worlds.js        Mundos: grupos de niveles que comparten estética y dificultad
 data/characters.js    Personajes (colores, accesorio, sprite opcional)
-data/levels/*.js      Niveles (mapas de caracteres)
+data/levels/*.js      Niveles (mapas de caracteres), agrupados por mundo
 assets/img/           Íconos de la app e imágenes propias opcionales (fondos, sprites, tiles)
 manifest.webmanifest  Datos para instalar como app (nombre, ícono, pantalla completa)
 js/core/              Utilidades, teclado/táctil, sonido, guardado local, pantalla completa
@@ -49,13 +50,36 @@ js/ui/screens.js      Pantallas: menú, niveles, personalizar, ranking, competen
 js/main.js            Arranque y bucle del juego
 ```
 
+## Mundos (grupos de niveles)
+
+Como en Mario Bros, los niveles se agrupan en **mundos** y todos los niveles de un
+mundo comparten la misma estética. Los mundos se definen en `data/worlds.js` y hoy
+hay 5, con 2 niveles cada uno:
+
+| Mundo | Nombre | Tema | Dificultad | Niveles |
+|-------|--------|------|------------|---------|
+| 1 | Prado Soleado | `prado` | ★☆☆☆☆ | 1-1 El Prado · 1-2 Sendero del Prado |
+| 2 | Cuevas Profundas | `cueva` | ★★☆☆☆ | 2-1 La Cueva · 2-2 Túnel Profundo |
+| 3 | Costa Dorada | `playa` | ★★★☆☆ | 3-1 La Playa · 3-2 Marea Alta |
+| 4 | Tierra del Volcán | `volcan` | ★★★★☆ | 4-1 Salto de Rocas · 4-2 El Volcán |
+| 5 | Castillo de las Estrellas | `castillo` | ★★★★★ | 5-1 Las Torres · 5-2 El Castillo |
+
+En la pantalla *Elegí un nivel* cada mundo aparece con su título, una muestra de su
+estética y sus niveles numerados `1-1`, `1-2`, etc.
+
+Un nivel hereda el tema y la dificultad de su mundo; si el nivel pone `dificultad`
+propia, esa manda. Para **agregar un mundo**: registrá el mundo en `data/worlds.js`
+(elegí uno de los temas libres de `data/themes.js`: `nubes`, `bosque`, `nieve`,
+`ciudad`, `espacio`) y después creá sus niveles con ese `mundo`.
+
 ## Crear un nivel nuevo
 
 El juego trae 10 niveles (`nivel-01` a `nivel-10`), de dificultad 1 a 5. Para agregar otro:
 
-1. Copiá `data/levels/nivel-04-bosque.js` a `data/levels/nivel-11-loquesea.js`.
-2. Cambiá `id`, `orden`, `nombre`, `descripcion`, `tema`, `dificultad` (1 a 5, se
-   muestra en estrellitas en la lista de niveles) y `tiempoObjetivo`.
+1. Copiá `data/levels/nivel-04-cueva.js` a `data/levels/nivel-11-loquesea.js`.
+2. Cambiá `id`, `orden`, `nombre`, `descripcion`, `mundo` (el id de un mundo de
+   `data/worlds.js`: de ahí sale la estética), `dificultad` (1 a 5, se muestra en
+   estrellitas en la lista de niveles) y `tiempoObjetivo`.
 3. Dibujá el `mapa` (11 filas recomendadas; cada carácter es una celda de 48 px):
 
 ```
@@ -64,8 +88,8 @@ El juego trae 10 niveles (`nivel-01` a `nivel-10`), de dificultad 1 a 5. Para ag
 ```
 
 4. Agregá la línea `<script src="data/levels/nivel-11-loquesea.js"></script>` en
-   `index.html`, debajo de los otros niveles. Listo: aparece en la lista de niveles,
-   en el ranking y en las competencias.
+   `index.html`, junto a los otros niveles de su mundo. Listo: aparece dentro de su
+   mundo en la lista de niveles, en el ranking y en las competencias.
 
 Consejos de diseño (medidos con la física actual):
 
@@ -112,8 +136,9 @@ Para usar un dibujo propio, agregá una hoja de sprites PNG en `assets/img/` y e
 ## Cambiar la estética
 
 Los temas viven en `data/themes.js`: cielo, colinas, suelo, bloques, pinchos, estrellas,
-bandera y enemigos son colores editables. Cada nivel elige su tema con el campo `tema`,
-y desde *Personalizar* se puede forzar un tema para todos los niveles.
+bandera y enemigos son colores editables. El tema **no se elige nivel por nivel**: lo elige
+el mundo (`data/worlds.js`), así los niveles de un mismo mundo se ven parecidos. Desde
+*Personalizar* se puede forzar un tema para todos los niveles.
 
 Un tema puede usar imágenes propias (`imagenes: { fondo, suelo, bloque, pincho, estrella }`);
 si el archivo no existe se usa el dibujo por defecto.
