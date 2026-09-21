@@ -2,7 +2,8 @@
 
 Juego de plataformas estilo *Mario Bros* / *Ika* (Plan Ceibal): el personaje corre,
 salta y junta estrellas hasta llegar a la bandera, esquivando pinchos, pozos y
-enemigos. Funciona **sin internet** y sin instalar nada.
+enemigos. Funciona **sin internet** y sin instalar nada (salvo el modo *Carrera*,
+que conecta dos dispositivos entre sí).
 
 **Jugar online:** https://emilianobonilla.github.io/runner-estrellas/
 
@@ -42,7 +43,9 @@ assets/img/           Íconos de la app e imágenes propias opcionales (fondos, 
 manifest.webmanifest  Datos para instalar como app (nombre, ícono, pantalla completa)
 js/core/              Utilidades, teclado/táctil, sonido, guardado local, pantalla completa
 js/game/              Nivel, entidades, jugador (física), render, partida
-js/ui/screens.js      Pantallas: menú, niveles, personalizar, ranking, competencias
+js/net/               Carrera entre dos dispositivos: red.js (conexión) y carrera.js (reglas)
+js/vendor/            PeerJS, la única librería externa (guardada acá, no se baja de internet)
+js/ui/screens.js      Pantallas: menú, niveles, personalizar, ranking, competencias, carrera
 js/main.js            Arranque y bucle del juego
 ```
 
@@ -99,6 +102,35 @@ Un tema puede usar imágenes propias (`imagenes: { fondo, suelo, bloque, pincho,
 si el archivo no existe se usa el dibujo por defecto.
 
 Los menús se estilizan en `css/style.css`.
+
+## Carrera 1 vs 1 (dos dispositivos)
+
+Dos jugadores corren **el mismo nivel al mismo tiempo**, cada uno en su computadora,
+tablet o celular. Gana el primero que toca la bandera.
+
+1. Uno entra en **Carrera 1 vs 1 → Crear una sala**. Le aparece un **código de 4 números**.
+2. El otro entra en **Carrera 1 vs 1 → Entrar con un código** y escribe esos 4 números.
+3. Quien creó la sala elige el nivel. Cuando los dos tocan **Estoy listo** arranca una
+   cuenta regresiva de 3 y largan juntos.
+
+Durante la carrera se ve al rival **medio transparente** cuando está cerca, y arriba una
+barra muestra quién va adelante. Morir **no te elimina**: reaparecés en el último
+checkpoint y el único castigo es el tiempo perdido, así la carrera siempre termina con
+alguien cruzando la meta. El reloj no se para: el botón ⏸ solo ofrece seguir o abandonar.
+Al terminar se comparan tiempo, estrellas y puntos, y se puede pedir **Revancha** sin
+volver a pasar el código.
+
+**Esto es lo único del juego que necesita internet**, porque los dos dispositivos se
+conectan entre ellos (WebRTC). No hay servidor propio ni cuentas: solo se usa un servidor
+público que los presenta, y después los datos de la partida viajan directo de uno al otro.
+Si la red del lugar bloquea ese tipo de conexión, la sala no se abre y el juego lo avisa;
+todo el resto del juego sigue funcionando sin conexión.
+
+Detalles técnicos: `js/net/red.js` abre la conexión (el código de sala es el identificador
+en el servidor de PeerJS) y `js/net/carrera.js` define los mensajes (`hola`, `nivel`,
+`listo`, `arrancar`, `pos`, `meta`, `revancha`). La posición viaja 15 veces por segundo y
+se suaviza al dibujarla. Para cambiar de servidor de salas o usar uno propio, se toca solo
+`red.js`.
 
 ## Competencias
 
