@@ -332,6 +332,10 @@
       '<div><h3>Puntos</h3><p>Estrella: 100 · Pisar un enemigo: 50 a 120 (según el bicho) · Llegar a la meta: 500<br>Bonus por terminar rápido y por juntar todas las estrellas.</p></div>' +
       '<div><h3>Peligros</h3><p>Los pinchos y los enemigos te quitan una vida (tenés 3). Saltá encima de los enemigos para vencerlos. Los checkpoints guardan tu avance.</p></div>' +
       '<div><h3>Los 5 enemigos</h3><p>Cada mundo tiene el suyo, cada vez más difícil:</p><ul class="lista-enemigos">' + listaEnemigos() + '</ul></div>' +
+      '<div><h3>Versión</h3><p>Estás jugando la <b>' + esc(R.versionTexto()) + '</b>.<br>' +
+      '<a href="' + esc(R.versionURL()) + '" target="_blank" rel="noopener" style="color:var(--acento2)">Ver este código en GitHub</a> · ' +
+      '<a href="' + esc(R.VERSION.repo) + '" target="_blank" rel="noopener" style="color:var(--acento2)">Repositorio</a></p>' +
+      '<p class="suave">El mismo número aparece abajo a la derecha en los menús: sirve para saber si estás probando la versión de tu computadora o la de la web.</p></div>' +
       '</div></div>');
   };
 

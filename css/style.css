@@ -251,3 +251,19 @@ table.tabla { width: 100%; border-collapse: collapse; margin-top: 8px; font-size
   .mundo-cabezal .muestra-tema { width: 64px; height: 38px; }
   .mundo-texto .meta { font-size: 13px; }
 }
+
+/* ---------- Cartelito de versión ---------- */
+/* Abajo a la derecha, discreto. Solo se ve cuando hay una pantalla de menú
+   a la vista: mientras se juega (#pantallas oculto) desaparece para no
+   taparse con el botón de saltar. */
+#version {
+  position: absolute; right: 12px; bottom: 8px; z-index: 5;
+  padding: 4px 9px; border-radius: 999px;
+  background: rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.18);
+  color: var(--suave); text-decoration: none;
+  font-size: 12px; font-weight: 700; letter-spacing: .3px;
+  font-variant-numeric: tabular-nums;
+  opacity: .75;
+}
+#version:hover, #version:focus { opacity: 1; color: var(--acento); border-color: var(--acento); }
+#pantallas.oculto + #version { display: none; }

@@ -52,6 +52,9 @@
     var pref = datos.perfil.tactil;
     var mostrar = pref === 'si' || (pref === 'auto' && esTactil);
     touchEl.classList.toggle('oculto', !(mostrar && partida));
+    // Con botones táctiles en pantalla el cartelito de versión estorbaría el
+    // botón de saltar (mismo rincón): se esconde hasta salir del nivel.
+    versionEl.classList.toggle('oculto', !!(mostrar && partida));
   }
   Array.prototype.forEach.call(touchEl.querySelectorAll('.touch-boton'), function (b) {
     var accion = b.dataset.tecla;
@@ -87,6 +90,14 @@
     if (partida.estado === 'jugando') pausar();
     else if (partida.estado === 'pausa') continuar();
   };
+
+  /* ---------- cartelito de versión ---------- */
+  // Para saber siempre qué versión se está probando (js/core/version.js).
+  // El enlace lleva al código exacto de esa versión en GitHub.
+  var versionEl = document.getElementById('version');
+  versionEl.textContent = R.versionCorta();
+  versionEl.href = R.versionURL();
+  versionEl.title = R.versionTexto() + ' — ver este código en GitHub';
 
   /* ---------- perfil ---------- */
   function personajeActual() {

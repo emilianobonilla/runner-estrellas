@@ -44,11 +44,13 @@ data/levels/*.js      Niveles (mapas de caracteres), agrupados por mundo
 assets/img/           Íconos de la app e imágenes propias opcionales (fondos, sprites, tiles)
 manifest.webmanifest  Datos para instalar como app (nombre, ícono, pantalla completa)
 js/core/              Utilidades, teclado/táctil, sonido, guardado local, pantalla completa
+js/core/version.js    Número de versión del juego (lo muestra el cartelito del menú)
 js/game/              Nivel, entidades, jugador (física), render, partida
 js/net/               Carrera entre dos dispositivos: red.js (conexión) y carrera.js (reglas)
 js/vendor/            PeerJS, la única librería externa (guardada acá, no se baja de internet)
 js/ui/screens.js      Pantallas: menú, niveles, personalizar, ranking, competencias, carrera
 js/main.js            Arranque y bucle del juego
+herramientas/         Scripts de apoyo (probar niveles, publicar una versión)
 ```
 
 ## Mundos (grupos de niveles)
@@ -215,6 +217,30 @@ Desde el menú **Competencias**:
 
 Todo el progreso (perfil, ranking, competencias) se guarda en el navegador de esa
 computadora (`localStorage`). Borrar los datos del sitio reinicia el juego.
+
+## Versiones
+
+Abajo a la derecha de los menús aparece un cartelito con la versión que estás
+jugando (por ejemplo **v1.0.0**). Sirve para no confundirse mientras se prueba:
+si el cartelito no cambia después de tocar el código, estás mirando la copia
+vieja (típico del navegador con la versión de la web guardada en caché).
+
+Tocándolo se abre en GitHub la **etiqueta** (*tag*) con el código exacto de esa
+versión: https://github.com/emilianobonilla/runner-estrellas/releases/tag/v1.0.0
+Si GitHub muestra "404" quiere decir que esa versión todavía no se publicó, o
+sea que estás jugando una versión de prueba de tu computadora.
+
+El número vive en un solo lugar, `js/core/version.js`. Para publicar una versión
+nueva (actualiza el archivo, hace el commit, crea la etiqueta y ofrece subirla):
+
+```bash
+herramientas/version.sh 1.1.0 "Nombre de la versión"
+```
+
+Sin argumentos muestra la versión actual. Se usan tres números,
+`mayor.menor.arreglo`: el último para arreglitos, el del medio cuando se agregan
+niveles o funciones, el primero para cambios grandes. La misma información
+(versión, nombre, fecha y enlaces a GitHub) está también en *Cómo jugar*.
 
 ## Desarrollo
 
