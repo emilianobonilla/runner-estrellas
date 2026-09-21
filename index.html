@@ -47,10 +47,16 @@
 
     <!-- Pantallas (menú, selección, resultados, etc.) -->
     <div id="pantallas"></div>
+
+    <!-- Cartelito de versión: aparece sobre los menús (no mientras se juega, para
+         no tapar los botones táctiles). Tocándolo se abre en GitHub el código
+         exacto de esta versión. El número se cambia en js/core/version.js. -->
+    <a id="version" target="_blank" rel="noopener"></a>
   </div>
 
   <!-- Núcleo -->
   <script src="js/core/util.js"></script>
+  <script src="js/core/version.js"></script>
   <script src="js/core/fullscreen.js"></script>
   <script src="js/core/input.js"></script>
   <script src="js/core/audio.js"></script>
