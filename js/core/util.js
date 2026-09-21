@@ -12,10 +12,39 @@ window.RUNNER = window.RUNNER || {};
   R.personajes = [];
   R.temas = {};
   R.mundos = [];
+  R.tiposEnemigo = {};
   R.registrarNivel = function (n) { R.niveles.push(n); };
   R.registrarPersonaje = function (p) { R.personajes.push(p); };
   R.registrarTema = function (t) { R.temas[t.id] = t; };
   R.registrarMundo = function (m) { R.mundos.push(m); };
+  R.registrarEnemigo = function (e) { R.tiposEnemigo[e.id] = e; };
+
+  /* ---------- enemigos: cada mundo tiene el suyo ---------- */
+
+  /* Tipo de enemigo por id ('caminante', 'saltarin'...). Si no existe, el primero. */
+  R.tipoEnemigo = function (id) {
+    return R.tiposEnemigo[id] || R.tiposEnemigo[Object.keys(R.tiposEnemigo)[0]] || null;
+  };
+
+  /* Tipo de enemigo que corresponde a la letra del mapa.
+     'E' no es un tipo fijo: es "el enemigo de este mundo", así cada mundo
+     tiene su propia criatura sin tocar los mapas. Las otras letras
+     (ver data/enemies.js) fuerzan un tipo concreto en cualquier nivel. */
+  R.tipoEnemigoPorSimbolo = function (ch, nivelDef) {
+    if (ch === 'E') return R.enemigoDe(nivelDef);
+    var ids = Object.keys(R.tiposEnemigo);
+    for (var i = 0; i < ids.length; i++) {
+      if (R.tiposEnemigo[ids[i]].simbolo === ch) return R.tiposEnemigo[ids[i]];
+    }
+    return null;
+  };
+
+  /* Enemigo propio del nivel, o el de su mundo, o el caminante de siempre. */
+  R.enemigoDe = function (nivelDef) {
+    var m = R.mundoDe(nivelDef);
+    var id = (nivelDef && nivelDef.enemigo) || (m && m.enemigo) || 'caminante';
+    return R.tipoEnemigo(id);
+  };
 
   /* ---------- mundos: grupos de niveles con la misma estética ---------- */
 

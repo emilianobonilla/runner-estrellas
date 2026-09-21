@@ -10,7 +10,9 @@
         - plataformas flotantes con apoyo a menos de 3 celdas de altura
         - estrellas a menos de 5 celdas sobre una superficie cercana
         - pinchos, enemigos, checkpoints y bandera apoyados en el piso
-        - enemigos lejos de pinchos y de los bordes de los pozos
+          (los voladores, en cambio, tienen que estar en el aire)
+        - enemigos lejos de pinchos y con lugar para moverse
+        - los saltarines, con espacio libre arriba para saltar
 
    2) Un bot que juega el nivel con la física real del juego:
       corre a la derecha y salta; si muere, reintenta cambiando la
@@ -29,7 +31,8 @@ sandbox.window = sandbox;
 vm.createContext(sandbox);
 const cargar = (rel) => vm.runInContext(fs.readFileSync(path.join(BASE, rel), 'utf8'), sandbox, { filename: rel });
 ['js/core/util.js', 'js/game/entities.js', 'js/game/level.js', 'js/game/player.js'].forEach(cargar);
-cargar('data/worlds.js');   // los niveles sacan su estética del mundo
+cargar('data/worlds.js');    // los niveles sacan su estética del mundo
+cargar('data/enemies.js');   // ...y también su tipo de enemigo ('E' en el mapa)
 const archivos = fs.readdirSync(path.join(BASE, 'data/levels')).filter((f) => f.endsWith('.js')).sort();
 archivos.forEach((f) => cargar('data/levels/' + f));
 const R = sandbox.window.RUNNER, T = R.TILE;
@@ -66,9 +69,16 @@ function revisar(def) {
   for (let r = 0; r < alto; r++) for (let c = 0; c < ancho; c++) cuenta[ch(c, r)] = (cuenta[ch(c, r)] || 0) + 1;
   ['P', 'F'].forEach((k) => { if (cuenta[k] !== 1) errores.push(`tiene que haber exactamente un '${k}' (hay ${cuenta[k] || 0})`); });
 
+  // Cada letra de enemigo se traduce al tipo que le toca ('E' = el del mundo)
+  const tipoDe = (x) => (x === '.' ? null : R.tipoEnemigoPorSimbolo(x, def));
+  const esEnemigo = (x) => !!tipoDe(x);
+  const vuela = (x) => { const t = tipoDe(x); return !!t && t.comportamiento === 'volar'; };
+
   for (let r = 0; r < alto; r++) for (let c = 0; c < ancho; c++) {
     const x = ch(c, r);
-    if ('PCEF^'.indexOf(x) >= 0 && x !== '.' && !solido(c, r + 1)) errores.push(`'${x}' en el aire (col ${c}, fila ${r})`);
+    const apoyado = 'PCF^'.indexOf(x) >= 0 || (esEnemigo(x) && !vuela(x));
+    if (apoyado && !solido(c, r + 1)) errores.push(`'${x}' en el aire (col ${c}, fila ${r})`);
+    if (vuela(x) && solido(c, r)) errores.push(`volador dentro de un macizo (col ${c}, fila ${r})`);
     if (x === '*' && solido(c, r)) errores.push(`estrella tapada por un macizo (col ${c}, fila ${r})`);
     if ((x === 'C' || x === 'F') && solido(c, r - 1)) errores.push(`'${x}' sin lugar para el poste (col ${c}, fila ${r})`);
   }
@@ -126,14 +136,26 @@ function revisar(def) {
     if (!ok) errores.push(`estrella difícil de alcanzar en col ${c}, fila ${r}`);
   }
 
-  // enemigos: no pegados a un pincho y con al menos 3 celdas para caminar
+  // enemigos: no pegados a un pincho y con lugar para moverse
   for (let r = 0; r < alto; r++) for (let c = 0; c < ancho; c++) {
-    if (ch(c, r) !== 'E') continue;
-    if (ch(c - 1, r) === '^' || ch(c + 1, r) === '^') errores.push(`enemigo pegado a un pincho (col ${c})`);
+    const tipo = tipoDe(ch(c, r));
+    if (!tipo) continue;
+    const quien = tipo.nombre.toLowerCase();
+    if (ch(c - 1, r) === '^' || ch(c + 1, r) === '^') errores.push(`${quien} pegado a un pincho (col ${c})`);
     let paseo = 1;
-    for (let cc = c - 1; cc >= 0 && solido(cc, r + 1) && ch(cc, r) !== '^'; cc--) paseo++;
-    for (let cc = c + 1; cc < ancho && solido(cc, r + 1) && ch(cc, r) !== '^'; cc++) paseo++;
-    if (paseo < 3) errores.push(`enemigo sin lugar para caminar (col ${c}, solo ${paseo} celdas)`);
+    if (tipo.comportamiento === 'volar') {
+      // vuela: solo lo frenan las paredes, así que le alcanza con aire alrededor
+      for (let cc = c - 1; cc >= 0 && !solido(cc, r); cc--) paseo++;
+      for (let cc = c + 1; cc < ancho && !solido(cc, r); cc++) paseo++;
+      if (paseo < 3) errores.push(`volador encerrado (col ${c}, solo ${paseo} celdas de aire)`);
+    } else {
+      for (let cc = c - 1; cc >= 0 && solido(cc, r + 1) && ch(cc, r) !== '^'; cc--) paseo++;
+      for (let cc = c + 1; cc < ancho && solido(cc, r + 1) && ch(cc, r) !== '^'; cc++) paseo++;
+      if (paseo < 3) errores.push(`${quien} sin lugar para caminar (col ${c}, solo ${paseo} celdas)`);
+    }
+    // el saltarín necesita techo alto: salta algo más de una celda
+    if (tipo.comportamiento === 'saltar' && (solido(c, r - 1) || solido(c, r - 2)))
+      errores.push(`saltarín sin lugar para saltar (col ${c}, fila ${r})`);
   }
   return errores;
 }
@@ -192,7 +214,7 @@ function jugar(def, decisiones) {
     if (sostener > 0) sostener -= dt;
     j.actualizar(dt, nivel, input, 0, null);
     input.saltoPulsado = false;
-    nivel.enemigos.forEach((e) => e.actualizar(dt, nivel));
+    nivel.enemigos.forEach((e) => e.actualizar(dt, nivel, j));
     maxX = Math.max(maxX, j.x);
 
     for (const e of nivel.estrellas) {

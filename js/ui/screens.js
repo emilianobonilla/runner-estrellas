@@ -305,6 +305,18 @@
   };
 
   /* ================= CÓMO JUGAR ================= */
+
+  /* Los 5 tipos de enemigos, en el orden en que aparecen (mundo 1 a 5). */
+  function listaEnemigos() {
+    return R.mundos.map(function (m) {
+      var e = R.tipoEnemigo(m.enemigo);
+      if (!e) return '';
+      return '<li><b>' + esc(e.nombre) + '</b> <span class="suave">(' + esc(m.nombre) + ')</span><br>' +
+        esc(e.descripcion) + '</li>';
+    }).join('');
+  }
+
+
   UI.comoJugar = function () {
     UI.mostrar(
       '<div class="panel">' +
@@ -317,8 +329,9 @@
       '<div><h3>Pantalla completa</h3><p>Al empezar un nivel el juego pasa a pantalla completa (se puede cambiar en Personalizar). También con el botón ⛶ del menú o del marcador. <span class="tecla">Esc</span> sale y pausa el juego.</p>' + avisoIOS() + '</div>' +
       '<div><h3>Carrera 1 vs 1</h3><p>Desde el menú, un jugador crea una sala y le dicta el código de 4 números al otro. Corren el mismo nivel al mismo tiempo, cada uno ve al rival medio transparente y una barra muestra quién va adelante. Gana el primero en tocar la bandera; morir no te elimina, solo te hace perder tiempo. Necesita internet en los dos dispositivos.</p></div>' +
       '<div><h3>Objetivo</h3><p>Llegá a la bandera 🏁 juntando la mayor cantidad de estrellas ⭐. Podés retroceder un poco, pero la pantalla no vuelve atrás.</p></div>' +
-      '<div><h3>Puntos</h3><p>Estrella: 100 · Pisar un enemigo: 50 · Llegar a la meta: 500<br>Bonus por terminar rápido y por juntar todas las estrellas.</p></div>' +
+      '<div><h3>Puntos</h3><p>Estrella: 100 · Pisar un enemigo: 50 a 120 (según el bicho) · Llegar a la meta: 500<br>Bonus por terminar rápido y por juntar todas las estrellas.</p></div>' +
       '<div><h3>Peligros</h3><p>Los pinchos y los enemigos te quitan una vida (tenés 3). Saltá encima de los enemigos para vencerlos. Los checkpoints guardan tu avance.</p></div>' +
+      '<div><h3>Los 5 enemigos</h3><p>Cada mundo tiene el suyo, cada vez más difícil:</p><ul class="lista-enemigos">' + listaEnemigos() + '</ul></div>' +
       '</div></div>');
   };
 

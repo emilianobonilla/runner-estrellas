@@ -28,8 +28,8 @@ En **iPhone/iPad** Safari no permite pantalla completa a las páginas: tocá
 
 El personaje puede retroceder un poco, pero la pantalla nunca vuelve atrás.
 
-**Puntos:** estrella 100 · pisar enemigo 50 · meta 500 · bonus por tiempo y por
-juntar todas las estrellas. Tenés 3 vidas; los checkpoints guardan el avance.
+**Puntos:** estrella 100 · pisar enemigo 50 a 120 (según el tipo) · meta 500 · bonus por
+tiempo y por juntar todas las estrellas. Tenés 3 vidas; los checkpoints guardan el avance.
 
 ## Estructura del proyecto
 
@@ -37,7 +37,8 @@ juntar todas las estrellas. Tenés 3 vidas; los checkpoints guardan el avance.
 index.html            Página principal (lista de scripts: agregá aquí los archivos nuevos)
 css/style.css         Estilos de menús y HUD
 data/themes.js        Estéticas (colores del escenario, imágenes opcionales)
-data/worlds.js        Mundos: grupos de niveles que comparten estética y dificultad
+data/worlds.js        Mundos: grupos de niveles que comparten estética, enemigo y dificultad
+data/enemies.js       Tipos de enemigos (uno por mundo: cómo se mueven y cuánto valen)
 data/characters.js    Personajes (colores, accesorio, sprite opcional)
 data/levels/*.js      Niveles (mapas de caracteres), agrupados por mundo
 assets/img/           Íconos de la app e imágenes propias opcionales (fondos, sprites, tiles)
@@ -56,19 +57,19 @@ Como en Mario Bros, los niveles se agrupan en **mundos** y todos los niveles de 
 mundo comparten la misma estética. Los mundos se definen en `data/worlds.js` y hoy
 hay 5, con 2 niveles cada uno:
 
-| Mundo | Nombre | Tema | Dificultad | Niveles |
-|-------|--------|------|------------|---------|
-| 1 | Prado Soleado | `prado` | ★☆☆☆☆ | 1-1 El Prado · 1-2 Sendero del Prado |
-| 2 | Cuevas Profundas | `cueva` | ★★☆☆☆ | 2-1 La Cueva · 2-2 Túnel Profundo |
-| 3 | Costa Dorada | `playa` | ★★★☆☆ | 3-1 La Playa · 3-2 Marea Alta |
-| 4 | Tierra del Volcán | `volcan` | ★★★★☆ | 4-1 Salto de Rocas · 4-2 El Volcán |
-| 5 | Castillo de las Estrellas | `castillo` | ★★★★★ | 5-1 Las Torres · 5-2 El Castillo |
+| Mundo | Nombre | Tema | Enemigo | Dificultad | Niveles |
+|-------|--------|------|---------|------------|---------|
+| 1 | Prado Soleado | `prado` | Caminante | ★☆☆☆☆ | 1-1 El Prado · 1-2 Sendero del Prado |
+| 2 | Cuevas Profundas | `cueva` | Saltarín | ★★☆☆☆ | 2-1 La Cueva · 2-2 Túnel Profundo |
+| 3 | Costa Dorada | `playa` | Volador | ★★★☆☆ | 3-1 La Playa · 3-2 Marea Alta |
+| 4 | Tierra del Volcán | `volcan` | Perseguidor | ★★★★☆ | 4-1 Salto de Rocas · 4-2 El Volcán |
+| 5 | Castillo de las Estrellas | `castillo` | Blindado | ★★★★★ | 5-1 Las Torres · 5-2 El Castillo |
 
 En la pantalla *Elegí un nivel* cada mundo aparece con su título, una muestra de su
 estética y sus niveles numerados `1-1`, `1-2`, etc.
 
-Un nivel hereda el tema y la dificultad de su mundo; si el nivel pone `dificultad`
-propia, esa manda. Para **agregar un mundo**: registrá el mundo en `data/worlds.js`
+Un nivel hereda el tema, el enemigo y la dificultad de su mundo; si el nivel pone
+`dificultad` o `enemigo` propios, esos mandan. Para **agregar un mundo**: registrá el mundo en `data/worlds.js`
 (elegí uno de los temas libres de `data/themes.js`: `nubes`, `bosque`, `nieve`,
 `ciudad`, `espacio`) y después creá sus niveles con ese `mundo`.
 
@@ -86,6 +87,10 @@ El juego trae 10 niveles (`nivel-01` a `nivel-10`), de dificultad 1 a 5. Para ag
 .  vacío        G  suelo         #  bloque        *  estrella
 ^  pincho       E  enemigo       C  checkpoint    P  inicio      F  meta
 ```
+
+La `E` pone **el enemigo del mundo** (ver la tabla de arriba), así el mismo mapa cambia de
+bicho según dónde esté. Para forzar un tipo concreto usá su letra: `A` caminante ·
+`S` saltarín · `V` volador (va en el aire, no apoyado) · `R` perseguidor · `B` blindado.
 
 4. Agregá la línea `<script src="data/levels/nivel-11-loquesea.js"></script>` en
    `index.html`, junto a los otros niveles de su mundo. Listo: aparece dentro de su
@@ -113,9 +118,30 @@ node herramientas/probar-niveles.js
 ```
 
 Revisa todos los niveles contra esas reglas (pozos, techos, escalones, estrellas fuera de
-alcance, enemigos mal puestos) y además los juega con un bot que usa la física real del
+alcance, enemigos mal puestos: sin lugar para caminar, saltarines bajo un techo bajo o
+voladores encerrados) y además los juega con un bot que usa la física real del
 juego: si el bot no llega a la meta, el nivel es imposible o tiene un salto demasiado justo.
 No es parte del juego (`index.html` no lo carga) y no necesita internet ni instalar nada.
+
+## Los 5 tipos de enemigos
+
+Están en `data/enemies.js`, uno por mundo y cada vez más difíciles:
+
+| # | Enemigo | Letra | Cómo se mueve | Puntos |
+|---|---------|-------|---------------|--------|
+| 1 | Caminante | `A` | Va y viene; da media vuelta en las paredes y en los bordes. | 50 |
+| 2 | Saltarín | `S` | Camina despacio y cada tanto pega un salto de más de una celda. | 60 |
+| 3 | Volador | `V` | Flota en el aire subiendo y bajando; cruza los pozos volando. | 70 |
+| 4 | Perseguidor | `R` | Patrulla tranquilo y, si te ve cerca, corre hacia vos (sin tirarse a los pozos). | 80 |
+| 5 | Blindado | `B` | Lento y con púas: aplastarlo duele. Cada 2,4 s las esconde 1,4 s y **ahí** se lo puede pisar. | 120 |
+
+A todos (menos al blindado con las púas afuera) se los vence saltándoles encima. El
+blindado avisa: cuando esconde las púas se aclara y se le ponen los ojos verdes.
+
+Para **inventar un enemigo nuevo**: copiá un bloque de `data/enemies.js`, cambiale `id`,
+`simbolo` y los números. Si querés que se mueva distinto, agregá su `comportamiento` en
+`js/game/entities.js` y su `forma` (el dibujo) en `js/game/render.js`. Para que un mundo lo
+use por defecto, poné su `id` en el campo `enemigo` del mundo en `data/worlds.js`.
 
 ## Crear un personaje nuevo
 
@@ -136,7 +162,8 @@ Para usar un dibujo propio, agregá una hoja de sprites PNG en `assets/img/` y e
 ## Cambiar la estética
 
 Los temas viven en `data/themes.js`: cielo, colinas, suelo, bloques, pinchos, estrellas,
-bandera y enemigos son colores editables. El tema **no se elige nivel por nivel**: lo elige
+bandera y enemigos son colores editables (cada tipo de enemigo aclara u oscurece el color
+`enemigo` del tema con su campo `tinte`). El tema **no se elige nivel por nivel**: lo elige
 el mundo (`data/worlds.js`), así los niveles de un mismo mundo se ven parecidos. Desde
 *Personalizar* se puede forzar un tema para todos los niveles.
 

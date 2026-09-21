@@ -26,6 +26,7 @@
     this.estrellas = 0;
     this.totalEstrellas = this.nivel.estrellas.length;
     this.enemigosPisados = 0;
+    this.puntosEnemigos = 0;       // los tipos de enemigo dan distintos puntos
     this.muertes = 0;
     this.estado = this.cuenta > 0 ? 'preparando' : 'jugando';   // preparando | jugando | pausa | muriendo | ganado | perdida | fin
     this.temporizador = 0;
@@ -53,7 +54,7 @@
     if (this.estado === 'jugando') {
       this.tiempo += dt;
       j.actualizar(dt, n, this.input, this.camara.x + 4, this);
-      for (i = 0; i < n.enemigos.length; i++) n.enemigos[i].actualizar(dt, n);
+      for (i = 0; i < n.enemigos.length; i++) n.enemigos[i].actualizar(dt, n, j);
       n.enemigos = n.enemigos.filter(function (e) { return e.vivo || e.tiempoAplastado < 0.6; });
       this.colisiones();
       this.actualizarCamara(false);
@@ -147,12 +148,20 @@
     for (i = 0; i < n.enemigos.length; i++) {
       e = n.enemigos[i]; if (!e.vivo) continue;
       if (j.x < e.x + e.w && j.x + j.w > e.x && j.y < e.y + e.h && j.y + j.h > e.y) {
-        if (j.vy > 0 && j.y + j.h - e.y < 18) {
+        var desdeArriba = j.vy > 0 && j.y + j.h - e.y < 18;
+        if (desdeArriba && e.aplastable()) {
           e.vivo = false; j.vy = -430; j.saltando = false;
-          this.puntos += PUNTOS_ENEMIGO; this.enemigosPisados++;
+          var vale = e.tipo.puntos || PUNTOS_ENEMIGO;
+          this.puntos += vale; this.puntosEnemigos += vale; this.enemigosPisados++;
           this.audio.pisar();
           this.explotar(e.x + e.w / 2, e.y + e.h / 2, this.tema.enemigo, 8, 160);
-        } else if (j.invulnerable <= 0) { this.morir(false); return; }
+        } else if (j.invulnerable <= 0) {
+          var pinchado = desdeArriba && !e.aplastable();
+          this.morir(false);
+          // Aviso claro: al blindado hay que esperarlo sin púas, no aplastarlo siempre
+          if (pinchado) this.avisar('¡Las púas pinchan! Esperá a que las esconda', 2.2);
+          return;
+        }
       }
     }
 
@@ -191,7 +200,7 @@
     var bonusTodas = this.totalEstrellas > 0 && this.estrellas === this.totalEstrellas ? PUNTOS_TODAS : 0;
     this.desglose = {
       estrellas: this.estrellas * PUNTOS_ESTRELLA,
-      enemigos: this.enemigosPisados * PUNTOS_ENEMIGO,
+      enemigos: this.puntosEnemigos,
       meta: PUNTOS_META,
       bonusTiempo: bonusTiempo,
       bonusTodas: bonusTodas
@@ -204,7 +213,7 @@
   Partida.prototype.terminar = function (completado) {
     this.estado = 'fin';
     if (!completado) {
-      this.desglose = { estrellas: this.estrellas * PUNTOS_ESTRELLA, enemigos: this.enemigosPisados * PUNTOS_ENEMIGO, meta: 0, bonusTiempo: 0, bonusTodas: 0 };
+      this.desglose = { estrellas: this.estrellas * PUNTOS_ESTRELLA, enemigos: this.puntosEnemigos, meta: 0, bonusTiempo: 0, bonusTodas: 0 };
       this.audio.derrota();
     }
     if (this.alTerminar) this.alTerminar({

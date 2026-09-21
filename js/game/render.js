@@ -350,31 +350,197 @@
     R.dibujarEstrella(ctx, px + 24, top + 25, 8, 0, '#fff', null);
   };
 
+  /* =============== Enemigos =============== */
+  /* Cada tipo (data/enemies.js) tiene su "forma". Todos se dibujan con el
+     origen en el piso del bicho (x al medio, y en las patas) y con el color
+     de enemigo del tema, aclarado u oscurecido según el tinte del tipo. */
+
+  function ojos(ctx, e, ancho, alturaOjos, color, pupila) {
+    var dir = e.mirando || -1;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(dir * 5 - ancho, alturaOjos, 4.5, 0, Math.PI * 2);
+    ctx.arc(dir * 5 + ancho, alturaOjos, 4.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = pupila || '#111';
+    ctx.beginPath();
+    ctx.arc(dir * 6 - ancho, alturaOjos, 2, 0, Math.PI * 2);
+    ctx.arc(dir * 6 + ancho, alturaOjos, 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function cejasEnojadas(ctx, x, y) {
+    ctx.strokeStyle = '#111'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-x, y); ctx.lineTo(-2, y + 3);
+    ctx.moveTo(x, y); ctx.lineTo(2, y + 3);
+    ctx.stroke();
+  }
+
+  /* Caminante: el bicho de siempre, patitas y cuerpo redondeado. */
+  function dibujarBaboso(ctx, e, tema, color) {
+    var paso = Math.sin(e.t * 12) * 4;
+    ctx.fillStyle = sombrear(color, -0.35);
+    rr(ctx, -14 + paso, -6, 12, 6, 3); ctx.fill();
+    rr(ctx, 2 - paso, -6, 12, 6, 3); ctx.fill();
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(-e.w / 2, -4);
+    ctx.quadraticCurveTo(-e.w / 2, -e.h, 0, -e.h);
+    ctx.quadraticCurveTo(e.w / 2, -e.h, e.w / 2, -4);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = sombrear(color, 0.18);
+    ctx.beginPath(); ctx.arc(-4, -e.h + 10, 6, 0, Math.PI * 2); ctx.fill();
+    ojos(ctx, e, 5.5, -e.h + 14, tema.enemigoOjos);
+    cejasEnojadas(ctx, 11, -e.h + 6);
+  }
+
+  /* Saltarín: cuerpo de gelatina sobre un resorte. Se estira al subir
+     y se aplasta justo antes de saltar. */
+  function dibujarResorte(ctx, e, tema, color) {
+    var estirar = R.clamp(-(e.vy || 0) / 1600, -0.18, 0.22);
+    var porSaltar = e.enSuelo && e.espera < 0.35 ? 0.16 : 0;
+    var alto = e.h * (1 + estirar - porSaltar), ancho = e.w * (1 - estirar * 0.7 + porSaltar * 0.6);
+
+    // Resorte (un zigzag que se estira y se comprime con el cuerpo)
+    var altoResorte = 11 + estirar * 10;
+    ctx.strokeStyle = sombrear(color, -0.45); ctx.lineWidth = 3;
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    for (var i = 1; i <= 4; i++) ctx.lineTo((i % 2 ? -1 : 1) * 7, -altoResorte * i / 4);
+    ctx.stroke();
+    ctx.fillStyle = sombrear(color, -0.3);
+    rr(ctx, -10, -4, 20, 5, 2.5); ctx.fill();   // pie
+
+    // Cuerpo
+    ctx.fillStyle = color;
+    rr(ctx, -ancho / 2, -alto - altoResorte, ancho, alto, ancho / 2.6); ctx.fill();
+    ctx.fillStyle = sombrear(color, 0.22);
+    ctx.beginPath(); ctx.arc(-ancho / 4, -alto - altoResorte + 8, 5, 0, Math.PI * 2); ctx.fill();
+    ojos(ctx, e, 6, -alto - altoResorte + 13, tema.enemigoOjos);
+    // Boca abierta: siempre parece que se va a impulsar
+    ctx.fillStyle = '#111';
+    ctx.beginPath(); ctx.ellipse(0, -alto - altoResorte + 25, 5, 3.5, 0, 0, Math.PI * 2); ctx.fill();
+  }
+
+  /* Volador: sin patas, con dos alas que aletean. */
+  function dibujarAlado(ctx, e, tema, color) {
+    var aleteo = Math.sin(e.t * 14);
+    var cy = -e.h / 2 - 2;
+    // Alas: salen de arriba del cuerpo y aletean (se ven aunque el bicho sea chico)
+    ctx.fillStyle = sombrear(color, 0.4);
+    ctx.strokeStyle = sombrear(color, -0.2); ctx.lineWidth = 1.5; ctx.lineJoin = 'round';
+    [-1, 1].forEach(function (lado) {
+      ctx.save();
+      ctx.translate(lado * (e.w / 2 - 8), cy - 9);
+      ctx.rotate(lado * (aleteo * 0.6 - 0.45));
+      ctx.beginPath();
+      ctx.moveTo(0, 2);
+      ctx.quadraticCurveTo(lado * 10, -24, lado * 26, -18);
+      ctx.quadraticCurveTo(lado * 20, 0, lado * 5, 7);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.restore();
+    });
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.ellipse(0, cy, e.w / 2.4, e.h / 2, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = sombrear(color, -0.3);
+    ctx.beginPath(); ctx.ellipse(0, cy + 6, e.w / 4, e.h / 5, 0, 0, Math.PI * 2); ctx.fill();
+    ojos(ctx, e, 5.5, cy - 3, tema.enemigoOjos);
+  }
+
+  /* Perseguidor: flaco y puntiagudo. Cuando te ve se le ponen los ojos
+     rojos, se le eriza la cresta y deja líneas de velocidad. */
+  function dibujarVeloz(ctx, e, tema, color) {
+    var dir = e.mirando || -1, alerta = e.alerta || 0;
+    if (alerta > 0.3) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.45)'; ctx.lineWidth = 2;
+      for (var i = 0; i < 3; i++) {
+        var y = -8 - i * 8, largo = 10 + i * 5 + Math.sin(e.t * 20 + i) * 4;
+        ctx.beginPath(); ctx.moveTo(-dir * (e.w / 2 + 3), y); ctx.lineTo(-dir * (e.w / 2 + 3 + largo), y); ctx.stroke();
+      }
+    }
+    var paso = Math.sin(e.t * 18) * 5;
+    ctx.fillStyle = sombrear(color, -0.4);
+    rr(ctx, -13 + paso, -7, 11, 7, 3); ctx.fill();
+    rr(ctx, 2 - paso, -7, 11, 7, 3); ctx.fill();
+
+    // Cresta
+    ctx.fillStyle = sombrear(color, alerta > 0.3 ? 0.35 : 0.1);
+    for (var k = -1; k <= 1; k++) {
+      var bx = k * 8, alto = (alerta > 0.3 ? 12 : 7) + Math.abs(k) * -2;
+      ctx.beginPath();
+      ctx.moveTo(bx - 5, -e.h + 6); ctx.lineTo(bx - dir * 2, -e.h + 6 - alto); ctx.lineTo(bx + 5, -e.h + 6);
+      ctx.closePath(); ctx.fill();
+    }
+
+    // Cuerpo inclinado hacia donde mira
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(-dir * e.w / 2, -5);
+    ctx.quadraticCurveTo(-dir * e.w / 2, -e.h + 4, dir * 4, -e.h + 2);
+    ctx.quadraticCurveTo(dir * e.w / 2, -e.h + 6, dir * (e.w / 2 - 2), -5);
+    ctx.closePath(); ctx.fill();
+
+    ojos(ctx, e, 5, -e.h + 12, alerta > 0.3 ? '#ff5252' : tema.enemigoOjos, alerta > 0.3 ? '#3a0000' : '#111');
+    cejasEnojadas(ctx, 12, -e.h + 4);
+  }
+
+  /* Blindado: caparazón con púas. Cuando las esconde titila y se lo puede
+     aplastar; ese es el momento de saltarle encima. */
+  function dibujarPuas(ctx, e, tema, color) {
+    var puas = e.puas, cambio = e.cambioPuas || 0;
+    var avisando = !puas && cambio < 0.6 && Math.floor(cambio * 10) % 2 === 0;   // titila antes de volver a sacarlas
+    var paso = Math.sin(e.t * 8) * 3;
+    ctx.fillStyle = sombrear(color, -0.4);
+    rr(ctx, -15 + paso, -6, 12, 6, 3); ctx.fill();
+    rr(ctx, 3 - paso, -6, 12, 6, 3); ctx.fill();
+
+    // Púas: afuera son triángulos largos; escondidas, apenas bultitos
+    ctx.fillStyle = puas ? '#d8dee9' : sombrear(color, -0.15);
+    ctx.strokeStyle = '#4a5160'; ctx.lineWidth = 1.5; ctx.lineJoin = 'round';
+    for (var i = -1; i <= 1; i++) {
+      var bx = i * 11, alto = puas ? 13 : 4;
+      ctx.beginPath();
+      ctx.moveTo(bx - 6, -e.h + 6);
+      ctx.lineTo(bx, -e.h + 6 - alto);
+      ctx.lineTo(bx + 6, -e.h + 6);
+      ctx.closePath(); ctx.fill();
+      if (puas) ctx.stroke();
+    }
+
+    // Caparazón
+    ctx.fillStyle = avisando ? sombrear(color, 0.35) : color;
+    ctx.beginPath();
+    ctx.moveTo(-e.w / 2, -4);
+    ctx.quadraticCurveTo(-e.w / 2, -e.h + 4, 0, -e.h + 4);
+    ctx.quadraticCurveTo(e.w / 2, -e.h + 4, e.w / 2, -4);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = sombrear(color, -0.25);
+    ctx.fillRect(-e.w / 2 + 4, -14, e.w - 8, 3);
+    ojos(ctx, e, 6, -e.h + 16, puas ? tema.enemigoOjos : '#b6f7c1');
+    cejasEnojadas(ctx, 12, -e.h + 9);
+  }
+
+  var FORMAS = {
+    baboso: dibujarBaboso,
+    resorte: dibujarResorte,
+    alado: dibujarAlado,
+    veloz: dibujarVeloz,
+    puas: dibujarPuas
+  };
+
   Renderer.prototype.enemigos = function (p) {
-    var ctx = this.ctx, tema = p.tema;
+    var ctx = this.ctx, tema = p.tema, cam = p.camara.x;
     for (var i = 0; i < p.nivel.enemigos.length; i++) {
       var e = p.nivel.enemigos[i];
-      var cx = e.x + e.w / 2, base = e.y + e.h;
+      if (e.x + e.w < cam - 60 || e.x > cam + R.ANCHO + 60) continue;
+      var dibujo = FORMAS[e.tipo.forma] || dibujarBaboso;
+      var color = sombrear(tema.enemigo, e.tipo.tinte || 0);
       ctx.save();
-      ctx.translate(cx, base);
+      ctx.translate(e.x + e.w / 2, e.y + e.h);
       if (!e.vivo) ctx.scale(1.3, 0.3);
-      // Patas
-      var paso = Math.sin(e.t * 12) * 4;
-      ctx.fillStyle = sombrear(tema.enemigo, -0.35);
-      rr(ctx, -14 + paso, -6, 12, 6, 3); ctx.fill();
-      rr(ctx, 2 - paso, -6, 12, 6, 3); ctx.fill();
-      // Cuerpo
-      ctx.fillStyle = tema.enemigo;
-      ctx.beginPath(); ctx.moveTo(-e.w / 2, -4); ctx.quadraticCurveTo(-e.w / 2, -e.h, 0, -e.h); ctx.quadraticCurveTo(e.w / 2, -e.h, e.w / 2, -4); ctx.closePath(); ctx.fill();
-      ctx.fillStyle = sombrear(tema.enemigo, 0.18); ctx.beginPath(); ctx.arc(-4, -e.h + 10, 6, 0, Math.PI * 2); ctx.fill();
-      // Ojos (enojados)
-      var dir = e.vx < 0 ? -1 : 1;
-      ctx.fillStyle = tema.enemigoOjos;
-      ctx.beginPath(); ctx.arc(dir * 5 - 5, -e.h + 14, 4.5, 0, Math.PI * 2); ctx.arc(dir * 5 + 6, -e.h + 14, 4.5, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#111';
-      ctx.beginPath(); ctx.arc(dir * 6 - 5, -e.h + 14, 2, 0, Math.PI * 2); ctx.arc(dir * 6 + 6, -e.h + 14, 2, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = '#111'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(-11, -e.h + 6); ctx.lineTo(-2, -e.h + 9); ctx.moveTo(11, -e.h + 6); ctx.lineTo(2, -e.h + 9); ctx.stroke();
+      dibujo(ctx, e, tema, color);
       ctx.restore();
     }
   };
