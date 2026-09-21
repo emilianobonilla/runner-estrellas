@@ -27,10 +27,13 @@
         switch (ch) {
           case 'G': case '#': case '^': celda = ch; break;
           case '*': this.estrellas.push(new R.Estrella(x * T + T / 2, y * T + T / 2)); break;
-          case 'E': this.enemigos.push(new R.Enemigo(x * T, y * T)); break;
           case 'C': this.checkpoints.push(new R.Checkpoint(x * T + T / 2, (y + 1) * T)); break;
           case 'F': this.meta = { x: x * T, y: (y + 1) * T }; break;
           case 'P': this.inicio = { x: x * T + 9, y: (y + 1) * T }; break;
+          default:
+            // 'E' es el enemigo del mundo; las otras letras, un tipo concreto
+            var tipoEnemigo = R.tipoEnemigoPorSimbolo(ch, def);
+            if (tipoEnemigo) this.enemigos.push(new R.Enemigo(x * T, y * T, tipoEnemigo));
         }
         arr.push(celda);
       }

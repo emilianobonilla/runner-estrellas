@@ -7,8 +7,14 @@
 
    Leyenda:
      .  vacío              G  suelo (sólido)      #  bloque (sólido)
-     *  estrella           ^  pincho (mata)       E  enemigo caminante
+     *  estrella           ^  pincho (mata)       E  enemigo del mundo
      P  inicio del jugador C  checkpoint          F  meta (bandera)
+
+   La 'E' pone el enemigo que le toca al mundo del nivel: caminante en
+   el prado, saltarín en la cueva, volador en la playa, perseguidor en
+   el volcán y blindado en el castillo (ver data/enemies.js). Si querés
+   uno distinto, usá su letra: A caminante · S saltarín · V volador
+   (va en el aire) · R perseguidor · B blindado.
 
    Reglas útiles para diseñar:
      - El salto sube hasta 3 celdas de plataforma y alcanza

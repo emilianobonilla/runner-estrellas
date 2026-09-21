@@ -210,6 +210,9 @@ table.tabla { width: 100%; border-collapse: collapse; margin-top: 8px; font-size
 
 .tecla { display: inline-block; background: #2e3c5a; border: 1px solid #4a5b82; border-bottom-width: 3px; border-radius: 6px; padding: 2px 8px; font-family: ui-monospace, monospace; font-size: 14px; margin: 0 2px; }
 .ayuda { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 24px; }
+.lista-enemigos { list-style: none; padding: 0; margin: 6px 0 0; }
+.lista-enemigos li { padding: 6px 0; border-bottom: 1px dashed #33405e; line-height: 1.35; }
+.lista-enemigos li:last-child { border-bottom: 0; }
 @media (max-width: 640px) {
   .ayuda { grid-template-columns: 1fr; }
   .panel { --pad: 16px; }
