@@ -15,6 +15,7 @@
     this.alLlegar = op.alLlegar || null;   // aviso inmediato al tocar la meta (lo usa la carrera)
     this.nombre = op.nombre || '';
     this.infinitas = !!op.infinitas;       // en la carrera se reaparece siempre: el castigo es el tiempo
+    // Las vidas vienen de afuera: son del recorrido completo, no de este nivel (js/main.js)
     this.cuenta = op.cuenta || 0;          // segundos de cuenta regresiva antes de largar
     this.rival = null;                     // lo completa R.Carrera cuando es una carrera
 
@@ -22,7 +23,7 @@
     this.camara = { x: 0 };
     this.tiempo = 0;
     this.puntos = 0;
-    this.vidas = 3;
+    this.vidas = op.vidas == null ? R.VIDAS_INICIALES : op.vidas;
     this.estrellas = 0;
     this.totalEstrellas = this.nivel.estrellas.length;
     this.enemigosPisados = 0;
@@ -129,10 +130,11 @@
       }
     }
 
-    // Checkpoints
+    // Checkpoints: se activan al cruzar la línea de la bandera, a cualquier
+    // altura (no hace falta tocar el mástil). La meta sí hay que tocarla.
     for (i = 0; i < n.checkpoints.length; i++) {
       e = n.checkpoints[i]; if (e.activo) continue;
-      if (Math.abs(j.x + j.w / 2 - e.x) < 34 && j.y + j.h > e.y - 2 * T && j.y < e.y) {
+      if (j.x + j.w / 2 >= e.x) {
         e.activo = true;
         this.respawn = { x: e.x - j.w / 2, y: e.y };
         this.audio.checkpoint();
@@ -220,7 +222,7 @@
       nivelId: this.def.id, nombre: this.nombre,
       puntos: this.puntos, estrellas: this.estrellas, totalEstrellas: this.totalEstrellas,
       tiempo: Math.round(this.tiempo * 10) / 10, completado: completado,
-      muertes: this.muertes, desglose: this.desglose
+      muertes: this.muertes, vidas: this.vidas, desglose: this.desglose
     });
   };
 

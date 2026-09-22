@@ -29,7 +29,15 @@ En **iPhone/iPad** Safari no permite pantalla completa a las páginas: tocá
 El personaje puede retroceder un poco, pero la pantalla nunca vuelve atrás.
 
 **Puntos:** estrella 100 · pisar enemigo 50 a 120 (según el tipo) · meta 500 · bonus por
-tiempo y por juntar todas las estrellas. Tenés 3 vidas; los checkpoints guardan el avance.
+tiempo y por juntar todas las estrellas.
+
+**Vidas:** son 3 para toda la partida, no por nivel: lo que sobra al terminar un nivel se
+lleva al siguiente. Vuelven a 3 al empezar un recorrido nuevo (elegir un nivel en el menú,
+"Jugar de nuevo" o después del fin del juego); "Reiniciar nivel" desde la pausa sigue el
+mismo recorrido y conserva las que quedan.
+
+**Checkpoints:** se activan al cruzar la línea de la bandera, a cualquier altura y sin
+tener que tocarla. La bandera de meta, en cambio, sí hay que tocarla.
 
 ## Estructura del proyecto
 
@@ -108,7 +116,7 @@ Consejos de diseño (medidos con la física actual):
 - Cuidado con techos o bloques bajos encima de una plataforma: el jugador se golpea la cabeza.
 - No pongas una plataforma baja (a 2 o 3 celdas) justo antes de un pincho o pozo:
   el jugador se golpea la cabeza y no llega.
-- La fila de abajo sin `G` es un pozo (caer = perder una vida).
+- La fila de abajo sin `G` es un pozo (caer = perder una vida de la partida).
 - Para chicos de 6 a 8 años conviene: pozos de 3 celdas, plataformas de aterrizaje de 3
   celdas o más, un solo desafío por vez (dejá 4 o 5 celdas de descanso entre uno y otro)
   y un checkpoint cada 30 o 40 celdas.
@@ -134,7 +142,7 @@ Están en `data/enemies.js`, uno por mundo y cada vez más difíciles:
 | 1 | Caminante | `A` | Va y viene; da media vuelta en las paredes y en los bordes. | 50 |
 | 2 | Saltarín | `S` | Camina despacio y cada tanto pega un salto de más de una celda. | 60 |
 | 3 | Volador | `V` | Flota en el aire subiendo y bajando; cruza los pozos volando. | 70 |
-| 4 | Perseguidor | `R` | Patrulla tranquilo y, si te ve cerca, corre hacia vos (sin tirarse a los pozos). | 80 |
+| 4 | Perseguidor | `R` | Patrulla tranquilo y, si te ve venir de frente, sale a encararte (sin tirarse a los pozos). Si lo pasás de largo, te deja ir. | 80 |
 | 5 | Blindado | `B` | Lento y con púas: aplastarlo duele. Cada 2,4 s las esconde 1,4 s y **ahí** se lo puede pisar. | 120 |
 
 A todos (menos al blindado con las púas afuera) se los vence saltándoles encima. El

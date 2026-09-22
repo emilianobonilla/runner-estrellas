@@ -113,15 +113,23 @@
   /* ---------- flujo de partida ---------- */
   function esCarrera() { return !!(actual && actual.contexto.tipo === 'carrera'); }
 
-  function iniciarPartida(nivelDef, contexto) {
+  /* Vidas del recorrido completo: se arranca con 3 y se van gastando nivel a
+     nivel. Solo vuelven a 3 al empezar un recorrido nuevo (elegir un nivel en
+     el menú, "Jugar de nuevo" o después del fin del juego); pasar al nivel
+     siguiente o reintentar el nivel desde la pausa conserva las que quedan. */
+  var vidas = R.VIDAS_INICIALES;
+
+  function iniciarPartida(nivelDef, contexto, seguir) {
     contexto = contexto || { tipo: 'libre', nombre: datos.perfil.nombre || 'Anónimo' };
     var carrera = contexto.tipo === 'carrera';
+    if (!seguir) vidas = R.VIDAS_INICIALES;
     actual = { nivelDef: nivelDef, contexto: contexto };
     pantallaCompletaAlJugar();
     R.UI.ocultar();
     partida = new R.Partida(nivelDef, {
       personaje: personajeActual(), tema: temaPara(nivelDef), audio: audio, input: input,
       nombre: contexto.nombre,
+      vidas: vidas,
       infinitas: carrera,                                   // en la carrera se reaparece siempre
       cuenta: carrera ? (contexto.cuenta || 3) : 0,
       alLlegar: carrera ? function (p) { R.Carrera.avisarMeta(p); } : null,
@@ -138,6 +146,7 @@
 
   function terminar(res) {
     var ctx = actual.contexto;
+    vidas = res.vidas;          // lo que sobró se lleva al nivel siguiente
     partida = null;
     input.activo = false;
     hudEl.classList.add('oculto');
@@ -157,7 +166,7 @@
     partida.pausar(); R.UI.pausa();
   }
   function continuar() { if (!partida) return; partida.continuar(); R.UI.ocultar(); input.reiniciar(); }
-  function reiniciar() { if (actual) iniciarPartida(actual.nivelDef, actual.contexto); }
+  function reiniciar(seguir) { if (actual) iniciarPartida(actual.nivelDef, actual.contexto, seguir); }
   function abandonar() {
     partida = null; input.activo = false;
     hudEl.classList.add('oculto'); actualizarTactil();
@@ -200,6 +209,7 @@
     datos: datos, audio: audio, input: input,
     iniciarPartida: iniciarPartida, pausar: pausar, continuar: continuar, reiniciar: reiniciar, abandonar: abandonar,
     personajeActual: personajeActual, temaPara: temaPara, actualizarTactil: actualizarTactil,
+    vidas: function () { return vidas; },
     esCarrera: esCarrera,
     fsDisponible: fsDisponible,
     partida: function () { return partida; },

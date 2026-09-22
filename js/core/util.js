@@ -6,6 +6,7 @@ window.RUNNER = window.RUNNER || {};
   R.TILE = 48;          // tamaño de cada celda del mapa en píxeles
   R.ANCHO = 960;        // tamaño lógico del lienzo
   R.ALTO = 528;         // 11 filas de 48 px
+  R.VIDAS_INICIALES = 3;  // vidas del recorrido completo (no de cada nivel)
 
   // Registros de contenido (los archivos de data/ se agregan aquí)
   R.niveles = [];
