@@ -52,13 +52,13 @@ data/levels/*.js      Niveles (mapas de caracteres), agrupados por mundo
 assets/img/           Íconos de la app e imágenes propias opcionales (fondos, sprites, tiles)
 manifest.webmanifest  Datos para instalar como app (nombre, ícono, pantalla completa)
 js/core/              Utilidades, teclado/táctil, sonido, guardado local, pantalla completa
-js/core/version.js    Número de versión del juego (lo muestra el cartelito del menú)
+js/core/version.js    Número de versión del juego (lo escribe la acción de GitHub en cada merge)
 js/game/              Nivel, entidades, jugador (física), render, partida
 js/net/               Carrera entre varios dispositivos: red.js (conexión) y carrera.js (árbitro)
 js/vendor/            PeerJS, la única librería externa (guardada acá, no se baja de internet)
 js/ui/screens.js      Pantallas: menú, niveles, personalizar, ranking, competencias, carrera
 js/main.js            Arranque y bucle del juego
-herramientas/         Scripts de apoyo (probar niveles, publicar una versión)
+herramientas/         Scripts de apoyo (probar niveles, escribir la versión)
 ```
 
 ## Mundos (grupos de niveles)
@@ -242,26 +242,37 @@ computadora (`localStorage`). Borrar los datos del sitio reinicia el juego.
 ## Versiones
 
 Abajo a la derecha de los menús aparece un cartelito con la versión que estás
-jugando (por ejemplo **v1.0.0**). Sirve para no confundirse mientras se prueba:
-si el cartelito no cambia después de tocar el código, estás mirando la copia
-vieja (típico del navegador con la versión de la web guardada en caché).
+jugando (por ejemplo **v1.2.0**). Tocándolo se abre en GitHub la **etiqueta**
+(*tag*) con el código exacto de esa versión. Si GitHub muestra "404", estás
+jugando una copia de tu computadora que todavía no se publicó.
 
-Tocándolo se abre en GitHub la **etiqueta** (*tag*) con el código exacto de esa
-versión: https://github.com/emilianobonilla/runner-estrellas/releases/tag/v1.0.0
-Si GitHub muestra "404" quiere decir que esa versión todavía no se publicó, o
-sea que estás jugando una versión de prueba de tu computadora.
+**La versión sube sola.** Cada vez que se hace un merge a `main`, una acción de
+GitHub ([`.github/workflows/version.yml`](.github/workflows/version.yml)):
 
-El número vive en un solo lugar, `js/core/version.js`. Para publicar una versión
-nueva (actualiza el archivo, hace el commit, crea la etiqueta y ofrece subirla):
+1. sube el número (ver abajo) y usa el título del PR como nombre de la versión,
+2. lo escribe en `js/core/version.js` y hace el commit en `main`,
+3. crea la etiqueta `vX.Y.Z` y una *release* en GitHub,
+4. le pide a GitHub Pages que publique de nuevo.
 
-```bash
-herramientas/version.sh 1.1.0 "Nombre de la versión"
-```
+Nadie tiene que tocar el número a mano. Se usan tres números,
+`mayor.menor.arreglo`, y el PR decide cuál sube con sus etiquetas (*labels*):
 
-Sin argumentos muestra la versión actual. Se usan tres números,
-`mayor.menor.arreglo`: el último para arreglitos, el del medio cuando se agregan
-niveles o funciones, el primero para cambios grandes. La misma información
-(versión, nombre, fecha y enlaces a GitHub) está también en *Cómo jugar*.
+| Etiqueta del PR | Ejemplo            | Cuándo                               |
+|-----------------|--------------------|--------------------------------------|
+| *(ninguna)*     | v1.2.0 → v1.3.0    | lo normal: niveles o funciones nuevas |
+| `arreglo`       | v1.3.0 → v1.3.1    | arreglitos chicos                    |
+| `grande`        | v1.3.1 → v2.0.0    | cambios grandes                      |
+
+**¿Estamos todos en la misma versión?**
+
+- Si en la web hay una versión más nueva que la que tenés abierta, el cartelito
+  se pone de color y dice *"v1.3.0 disponible · tocá para actualizar"*: al
+  tocarlo recarga la página con la nueva.
+- En la sala de la **carrera** cada corredor muestra su versión; si alguno no
+  coincide con la tuya aparece en rojo con un aviso para que recargue.
+
+La misma información (versión, nombre, fecha y enlaces a GitHub) está también
+en *Cómo jugar*.
 
 ## Desarrollo
 
