@@ -263,7 +263,7 @@
       '<h2 style="font-size:36px">⏸ Pausa</h2>' +
       '<div class="botones">' +
       '<button class="btn principal" data-accion="continuar" autofocus>▶ Continuar</button>' +
-      '<button class="btn" data-accion="reiniciar">↻ Reiniciar nivel</button>' +
+      '<button class="btn" data-accion="reintentar">↻ Reiniciar nivel</button>' +
       '<button class="btn" data-accion="abandonar">✕ Salir</button>' +
       botonPantallaCompleta() +
       '</div><p class="aviso" style="margin-top:14px">Esc o P para continuar</p></div>', { transparente: true });
@@ -283,6 +283,10 @@
       if (d.bonusTodas) filas += '<li><span>🌟 ¡Todas las estrellas!</span><b>' + d.bonusTodas + '</b></li>';
     }
     filas += '<li class="total"><span>Total</span><b>' + res.puntos + '</b></li>';
+    // Las vidas son de toda la partida: conviene ver con cuántas se sigue
+    var vidasTexto = res.completado
+      ? '❤️ Te quedan ' + res.vidas + (res.vidas === 1 ? ' vida' : ' vidas') + ' para el resto del juego'
+      : '❤️ Te quedaste sin vidas: el juego vuelve a empezar con ' + R.VIDAS_INICIALES;
 
     var volver = ctx.tipo === 'competencia'
       ? '<button class="btn secundario" data-accion="verCompetencia" data-arg="' + esc(ctx.id) + '">🏁 Volver a la competencia</button>'
@@ -297,8 +301,9 @@
       (ctx.tipo === 'competencia' && mejoro ? '<p class="suave">Resultado guardado en la competencia.</p>' : '') +
       (ctx.tipo === 'competencia' && !mejoro ? '<p class="suave">No superaste tu mejor puntaje en la competencia.</p>' : '') +
       '<ul class="desglose" style="text-align:left">' + filas + '</ul>' +
+      (ctx.tipo === 'libre' ? '<p class="suave">' + vidasTexto + '</p>' : '') +
       '<div class="botones">' +
-      (siguiente ? '<button class="btn principal" data-accion="iniciarNivel" data-arg="' + esc(siguiente.id) + '">▶ Siguiente nivel: ' + esc(siguiente.nombre) + '</button>' : '') +
+      (siguiente ? '<button class="btn principal" data-accion="siguienteNivel" data-arg="' + esc(siguiente.id) + '">▶ Siguiente nivel: ' + esc(siguiente.nombre) + '</button>' : '') +
       '<button class="btn ' + (siguiente ? '' : 'principal') + '" data-accion="reiniciar">↻ Jugar de nuevo</button>' +
       volver +
       '</div></div>');
@@ -330,7 +335,7 @@
       '<div><h3>Carrera 1 vs 1</h3><p>Desde el menú, un jugador crea una sala y le dicta el código de 4 números al otro. Corren el mismo nivel al mismo tiempo, cada uno ve al rival medio transparente y una barra muestra quién va adelante. Gana el primero en tocar la bandera; morir no te elimina, solo te hace perder tiempo. Necesita internet en los dos dispositivos.</p></div>' +
       '<div><h3>Objetivo</h3><p>Llegá a la bandera 🏁 juntando la mayor cantidad de estrellas ⭐. Podés retroceder un poco, pero la pantalla no vuelve atrás.</p></div>' +
       '<div><h3>Puntos</h3><p>Estrella: 100 · Pisar un enemigo: 50 a 120 (según el bicho) · Llegar a la meta: 500<br>Bonus por terminar rápido y por juntar todas las estrellas.</p></div>' +
-      '<div><h3>Peligros</h3><p>Los pinchos y los enemigos te quitan una vida (tenés 3). Saltá encima de los enemigos para vencerlos. Los checkpoints guardan tu avance.</p></div>' +
+      '<div><h3>Peligros</h3><p>Los pinchos y los enemigos te quitan una vida. Tenés 3 para toda la partida: se comparten entre todos los niveles y, si se acaban, el juego empieza de nuevo. Saltá encima de los enemigos para vencerlos. Los checkpoints se activan al pasar la línea de la bandera y guardan tu avance.</p></div>' +
       '<div><h3>Los 5 enemigos</h3><p>Cada mundo tiene el suyo, cada vez más difícil:</p><ul class="lista-enemigos">' + listaEnemigos() + '</ul></div>' +
       '<div><h3>Versión</h3><p>Estás jugando la <b>' + esc(R.versionTexto()) + '</b>.<br>' +
       '<a href="' + esc(R.versionURL()) + '" target="_blank" rel="noopener" style="color:var(--acento2)">Ver este código en GitHub</a> · ' +
@@ -522,13 +527,20 @@
     competencias: function () { UI.competencias(); },
     comoJugar: function () { UI.comoJugar(); },
     continuar: function () { R.app.continuar(); },
-    reiniciar: function () { R.app.reiniciar(); },
+    reiniciar: function () { R.app.reiniciar(); },            // recorrido nuevo: vuelve a 3 vidas
+    reintentar: function () { R.app.reiniciar(true); },       // mismo recorrido: conserva las vidas
     abandonar: function () { R.app.abandonar(); },
     pantallaCompleta: function () { R.Fullscreen.alternar().catch(function () {}); },
 
     iniciarNivel: function (id) {
       var def = nivel(id); if (!def) return;
       R.app.iniciarPartida(def, { tipo: 'libre', nombre: nombreJugador() });
+    },
+
+    // Desde los resultados: sigue el mismo recorrido, con las vidas que quedaron
+    siguienteNivel: function (id) {
+      var def = nivel(id); if (!def) return;
+      R.app.iniciarPartida(def, { tipo: 'libre', nombre: nombreJugador() }, true);
     },
 
     elegirPersonaje: function (id) { datos().perfil.personaje = id; R.Storage.guardar(); repintarPersonalizar(); },

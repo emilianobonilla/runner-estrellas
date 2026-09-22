@@ -84,12 +84,12 @@ RUNNER.registrarEnemigo({
   id: 'perseguidor',
   simbolo: 'R',
   nombre: 'Perseguidor',
-  descripcion: 'Patrulla tranquilo, pero si te ve cerca sale corriendo atrás tuyo. Nunca se tira a un pozo.',
+  descripcion: 'Patrulla tranquilo, pero si te ve venir sale corriendo a encararte. Si lo pasás de largo, te deja ir.',
   ancho: 34, alto: 32,
   velocidad: 50,
   comportamiento: 'perseguir',
-  velocidadCorriendo: 185,   // corriendo: rápido, pero menos que el jugador (320)
-  vista: 290,                // px de distancia a los que te descubre
+  velocidadCorriendo: 140,   // corriendo: apurado, pero bastante menos que el jugador (320)
+  vista: 290,                // px de distancia a los que te descubre (solo mira hacia adelante)
   aplastable: true,
   puntos: 80,
   forma: 'veloz',

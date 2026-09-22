@@ -117,20 +117,22 @@
     this.y = y;
   };
 
-  /* Perseguidor: patrulla tranquilo hasta que ve al jugador cerca y a su
-     misma altura; ahí corre hacia él, pero nunca se tira a un pozo. */
+  /* Perseguidor: patrulla tranquilo hasta que ve venir al jugador (todavía
+     no lo pasó) cerca y a su misma altura; ahí le sale al encuentro, pero
+     nunca se tira a un pozo. Apenas el jugador lo pasa de largo lo deja ir:
+     vuelve a patrullar en vez de correrle atrás toda la pantalla. */
   Enemigo.prototype.perseguir = function (dt, nivel, jugador) {
     var t = this.tipo, viendo = false;
     if (jugador) {
       var dx = (jugador.x + jugador.w / 2) - (this.x + this.w / 2);
       var dy = Math.abs((jugador.y + jugador.h) - (this.y + this.h));
-      viendo = Math.abs(dx) < (t.vista || 290) && dy < T * 2;
+      // dx < 0: el jugador está a su izquierda, o sea viniendo de frente
+      viendo = dx < -8 && dx > -(t.vista || 290) && dy < T * 2;
       if (viendo) {
-        var dir = dx < 0 ? -1 : 1;
-        this.mirando = dir;
+        this.mirando = -1;
         this.alerta = Math.min(1, this.alerta + dt * 5);
         // Si adelante hay pared, pincho o vacío, se queda quieto mirándolo
-        this.vx = this.caminoLibre(dir, nivel) ? dir * (t.velocidadCorriendo || 185) : 0;
+        this.vx = this.caminoLibre(-1, nivel) ? -(t.velocidadCorriendo || 140) : 0;
       }
     }
     if (!viendo) {
