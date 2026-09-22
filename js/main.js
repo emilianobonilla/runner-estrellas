@@ -99,6 +99,21 @@
   versionEl.href = R.versionURL();
   versionEl.title = R.versionTexto() + ' — ver este código en GitHub';
 
+  // Si en la web ya hay otra versión publicada, el cartelito avisa y al
+  // tocarlo recarga la página: así todos quedan jugando la misma.
+  function hayVersionNueva(numero) {
+    versionEl.textContent = '⬆ v' + numero + ' disponible · tocá para actualizar';
+    versionEl.title = 'Estás jugando la ' + R.versionTexto() + '. Tocá para cargar la v' + numero + '.';
+    versionEl.classList.add('nueva');
+    versionEl.removeAttribute('target');
+    versionEl.onclick = function (e) { e.preventDefault(); location.reload(); };
+  }
+  R.buscarVersionNueva(hayVersionNueva);
+  // Y cada vez que se vuelve a la pestaña (por si quedó abierta de otro día)
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && !versionEl.classList.contains('nueva')) R.buscarVersionNueva(hayVersionNueva);
+  });
+
   /* ---------- perfil ---------- */
   function personajeActual() {
     return R.personajes.filter(function (p) { return p.id === datos.perfil.personaje; })[0] || R.personajes[0];

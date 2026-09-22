@@ -1,17 +1,16 @@
 /* Versión del juego.
-   Este es el ÚNICO lugar donde se toca el número de versión: lo muestran el
-   cartelito de abajo a la derecha y la pantalla "Cómo jugar", así al probar
-   siempre se sabe qué versión se está jugando (la local o la de la web).
+   NO se toca a mano: cada vez que se hace un merge a main, la acción de GitHub
+   (.github/workflows/version.yml) sube el número, pone el título del PR como
+   nombre, la fecha y el commit, y crea la etiqueta vX.Y.Z en GitHub.
 
-   Para publicar una versión nueva:
-       herramientas/version.sh 1.1.0 "Nombre de la versión"
-   ese script actualiza este archivo, hace el commit y crea la etiqueta
-   (tag) en GitHub, que es a donde apunta el cartelito. */
+   Lo muestran el cartelito de abajo a la derecha, la pantalla "Cómo jugar" y
+   la sala de la carrera (para ver que todos juegan la misma versión). */
 (function (R) {
   R.VERSION = {
-    numero: '1.0.0',              // se sube a mano o con herramientas/version.sh
-    nombre: 'Cinco Mundos',       // apodo de la versión, para acordarse de qué trae
+    numero: '1.0.0',              // lo sube la acción de GitHub en cada merge
+    nombre: 'Cinco Mundos',       // título del PR que trajo esta versión
     fecha: '2026-09-21',          // día en que se publicó
+    commit: '6cc7a9f',            // commit de main que generó la versión
     repo: 'https://github.com/emilianobonilla/runner-estrellas'
   };
 
@@ -27,7 +26,21 @@
   };
 
   /* Enlace al código exacto de esta versión en GitHub (la etiqueta que crea
-     herramientas/version.sh). Si la etiqueta todavía no se publicó, GitHub
-     muestra un 404: quiere decir que estás jugando una versión sin publicar. */
+     la acción de GitHub). Si GitHub muestra 404, estás jugando una copia de
+     tu computadora que todavía no se publicó. */
   R.versionURL = function () { return R.VERSION.repo + '/releases/tag/v' + R.VERSION.numero; };
+
+  /* Pregunta al servidor qué versión está publicada AHORA (sin usar la caché
+     del navegador). Llama a cuando(numero) solo si es distinta de la que se
+     está jugando. Sin internet o abriendo el archivo directo, no hace nada. */
+  R.buscarVersionNueva = function (cuando) {
+    if (!window.fetch || location.protocol === 'file:') return;
+    fetch('js/core/version.js?buscar=' + Date.now(), { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.text() : ''; })
+      .then(function (txt) {
+        var m = /numero:\s*'([^']+)'/.exec(txt);
+        if (m && m[1] !== R.VERSION.numero) cuando(m[1]);
+      })
+      .catch(function () {});
+  };
 })(window.RUNNER);

@@ -398,11 +398,15 @@
     var per = personajePorId(j.personajeId);
     var color = R.colorCorredor(j.jid);
     var pie = !j.conectado ? '🔌 Se desconectó' : j.listo ? '✅ Listo' : '⏳ Sin confirmar';
+    // Versión del juego de cada uno: en rojo si no es la misma que la mía
+    var igual = j.version === R.VERSION.numero;
+    var version = '<div class="meta"' + (igual ? '' : ' style="color:var(--peligro);font-weight:700"') + '>' +
+      (j.version ? 'v' + esc(j.version) : 'versión vieja') + (igual ? '' : ' ⚠') + '</div>';
     return '<div class="tarjeta centrado' + (j.listo && j.conectado ? ' sel' : '') + '"' +
       ' style="border-left:6px solid ' + color + '">' +
       '<canvas width="96" height="96" data-personaje="' + esc(per.id) + '"></canvas>' +
       '<h4 style="color:' + color + '">' + esc(j.nombre) + (soyYo ? ' (vos)' : '') + '</h4>' +
-      '<div class="meta">' + pie + '</div></div>';
+      '<div class="meta">' + pie + '</div>' + version + '</div>';
   }
 
   UI.carreraSala = function () {
@@ -453,6 +457,8 @@
       '<button class="btn volver" data-accion="carreraSalir">← Salir</button></div>' +
       (C.error ? '<div class="mensaje">' + esc(C.error) + ' <button class="btn chico" data-accion="carreraReintentar" style="margin-left:8px">Probar de nuevo</button></div>' : '') +
       (C.aviso ? '<div class="mensaje">' + esc(C.aviso) + '</div>' : '') +
+      (C.otraVersion().length ? '<div class="mensaje">⚠ No todos tienen la misma versión del juego (vos tenés la <b>' + esc(R.versionCorta()) + '</b>). ' +
+        'Pueden correr igual, pero para que todo coincida salgan de la sala, recarguen la página y vuelvan a entrar.</div>' : '') +
       (C.yaLargaron ? '<div class="mensaje">La carrera ya empezó: quedate acá y corrés en la próxima.</div>' : '') +
       cabezal +
       '<div class="tarjetas" style="margin-top:16px">' + fichas + '</div>' +

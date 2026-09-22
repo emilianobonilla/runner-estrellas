@@ -89,14 +89,19 @@
   C.nivel = function () { return nivelPorId(C.nivelId) || R.niveles[0]; };
 
   /* ---------- la lista de corredores ---------- */
-  function nuevoJugador(jid, peer, nombre, personajeId) {
-    return { jid: jid, peer: peer || null, nombre: nombre, personajeId: personajeId, listo: false, conectado: true, res: null };
+  function nuevoJugador(jid, peer, nombre, personajeId, version) {
+    return { jid: jid, peer: peer || null, nombre: nombre, personajeId: personajeId, version: version || '', listo: false, conectado: true, res: null };
   }
 
   C.jugador = function (jid) { return C.jugadores.filter(function (j) { return j.jid === jid; })[0] || null; };
   C.porPeer = function (peer) { return C.jugadores.filter(function (j) { return j.peer === peer; })[0] || null; };
   C.conectados = function () { return C.jugadores.filter(function (j) { return j.conectado; }); };
   C.otros = function () { return C.jugadores.filter(function (j) { return j.jid !== C.miId; }); };
+  /* Corredores conectados que juegan otra versión del juego que la mía (con
+     versiones distintas los niveles o las reglas pueden no coincidir). */
+  C.otraVersion = function () {
+    return C.conectados().filter(function (j) { return j.version !== R.VERSION.numero; });
+  };
   C.lugaresLibres = function () { return Math.max(0, MAX - C.jugadores.length); };
 
   /* Yo, o una ficha provisoria mientras el anfitrión todavía no me dio número. */
@@ -130,7 +135,7 @@
     C.miId = anfitrion ? 0 : -1;
     C.max = MAX;
     C.yaLargaron = false;
-    C.jugadores = anfitrion ? [nuevoJugador(0, null, miNombre(), miPersonaje())] : [];
+    C.jugadores = anfitrion ? [nuevoJugador(0, null, miNombre(), miPersonaje(), R.VERSION.numero)] : [];
     C._partida = null; C._pos = {}; C._tomadas = {}; C._vuelven = [];
     C.nivelId = C.nivelId || (R.niveles[0] && R.niveles[0].id);
     C.red = new R.Red(MAX);
@@ -159,7 +164,7 @@
     } else if (estado === 'conectado') {          // invitado: ya hay canal con el anfitrión
       C.error = '';
       if (C.estado === 'conectando') C.estado = 'sala';
-      C.red.enviar('hola', { nombre: miNombre(), personaje: miPersonaje() });
+      C.red.enviar('hola', { nombre: miNombre(), personaje: miPersonaje(), version: R.VERSION.numero });
 
     } else if (estado === 'abierta') {            // anfitrión: la sala quedó abierta
       C.error = '';
@@ -205,7 +210,8 @@
 
     if (tipo === 'hola') {
       if (!j) {
-        j = nuevoJugador(proximoJid(), peer, String(d.nombre || 'Corredor').slice(0, 20), d.personaje);
+        j = nuevoJugador(proximoJid(), peer, String(d.nombre || 'Corredor').slice(0, 20), d.personaje,
+          String(d.version || '').slice(0, 12));   // las versiones viejas no lo mandan
         C.jugadores.push(j);
         C.aviso = j.nombre + ' entró a la sala.';
       }
@@ -290,7 +296,7 @@
       yaLargaron: C.estado === 'corriendo' || C.estado === 'fin',
       jugadores: C.jugadores.map(function (j) {
         return {
-          jid: j.jid, nombre: j.nombre, personaje: j.personajeId,
+          jid: j.jid, nombre: j.nombre, personaje: j.personajeId, version: j.version,
           listo: !!j.listo, conectado: !!j.conectado, res: j.res || null
         };
       })
@@ -303,7 +309,7 @@
     C.jugadores = (d.jugadores || []).map(function (p) {
       return {
         jid: p.jid | 0, peer: null, nombre: String(p.nombre || 'Corredor').slice(0, 20),
-        personajeId: p.personaje, listo: !!p.listo, conectado: !!p.conectado, res: p.res || null
+        personajeId: p.personaje, version: String(p.version || '').slice(0, 12), listo: !!p.listo, conectado: !!p.conectado, res: p.res || null
       };
     });
     // Si alguien se desconectó mientras corremos, su fantasma se queda quieto

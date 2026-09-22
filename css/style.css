@@ -267,3 +267,5 @@ table.tabla { width: 100%; border-collapse: collapse; margin-top: 8px; font-size
 }
 #version:hover, #version:focus { opacity: 1; color: var(--acento); border-color: var(--acento); }
 #pantallas.oculto + #version { display: none; }
+/* Hay una versión más nueva publicada: se destaca para que la actualicen */
+#version.nueva { opacity: 1; color: #0f1420; background: var(--acento); border-color: var(--acento); }
