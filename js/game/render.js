@@ -189,7 +189,7 @@
     this.meta(p);
     this.estrellas(p);
     this.enemigos(p);
-    this.rival(p);          // el fantasma del rival va detrás del jugador
+    this.rivales(p);        // los fantasmas de los rivales van detrás del jugador
     this.jugador(p);
     this.particulas(p);
     ctx.restore();
@@ -534,6 +534,7 @@
     var ctx = this.ctx, tema = p.tema, cam = p.camara.x;
     for (var i = 0; i < p.nivel.enemigos.length; i++) {
       var e = p.nivel.enemigos[i];
+      if (!e.vivo && e.tiempoAplastado > 0.6) continue;   // ya terminó de desinflarse
       if (e.x + e.w < cam - 60 || e.x > cam + R.ANCHO + 60) continue;
       var dibujo = FORMAS[e.tipo.forma] || dibujarBaboso;
       var color = sombrear(tema.enemigo, e.tipo.tinte || 0);
@@ -554,63 +555,79 @@
     });
   };
 
-  /* =============== Carrera (dos jugadores) =============== */
+  /* =============== Carrera (varios corredores) =============== */
 
-  /* El rival, medio transparente y con su nombre encima. */
-  Renderer.prototype.rival = function (p) {
-    var r = p.rival;
-    if (!r || !r.activo) return;
+  /* Los rivales, medio transparentes y con su nombre (en su color) encima. */
+  Renderer.prototype.rivales = function (p) {
     var ctx = this.ctx, cam = p.camara.x;
-    if (r.x + 80 < cam || r.x - 80 > cam + R.ANCHO) return;   // fuera de la pantalla: lo muestra la barra
+    for (var i = 0; i < p.rivales.length; i++) {
+      var r = p.rivales[i];
+      if (!r.activo) continue;
+      if (r.x + 80 < cam || r.x - 80 > cam + R.ANCHO) continue;   // fuera de la pantalla: lo muestra la barra
 
-    ctx.save();
-    ctx.globalAlpha = 0.5;
-    R.dibujarPersonaje(ctx, r.personaje, r.x + 15, r.y + 44, {
-      anim: r.anim, enSuelo: r.enSuelo, mirando: r.mirando, vx: r.vx, t: r.t, muerto: r.muerto
-    });
-    ctx.globalAlpha = 0.9;
-    ctx.font = '800 13px system-ui, sans-serif';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-    ctx.lineWidth = 4; ctx.lineJoin = 'round'; ctx.strokeStyle = 'rgba(0,0,0,0.65)';
-    ctx.strokeText(r.nombre, r.x + 15, r.y - 6);
-    ctx.fillStyle = '#9ad7ff'; ctx.fillText(r.nombre, r.x + 15, r.y - 6);
-    ctx.restore();
+      ctx.save();
+      ctx.globalAlpha = 0.5;
+      R.dibujarPersonaje(ctx, r.personaje, r.x + 15, r.y + 44, {
+        anim: r.anim, enSuelo: r.enSuelo, mirando: r.mirando, vx: r.vx, t: r.t, muerto: r.muerto
+      });
+      ctx.globalAlpha = 0.9;
+      ctx.font = '800 13px system-ui, sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      ctx.lineWidth = 4; ctx.lineJoin = 'round'; ctx.strokeStyle = 'rgba(0,0,0,0.65)';
+      ctx.strokeText(r.nombre, r.x + 15, r.y - 6);
+      ctx.fillStyle = r.color || '#9ad7ff'; ctx.fillText(r.nombre, r.x + 15, r.y - 6);
+      ctx.restore();
+    }
   };
 
-  function marcaCarrera(ctx, x, y, w, prog, color, etiqueta, arriba) {
+  /* Una marca en la barra. fila: -1 y -2 son los dos renglones de arriba
+     (los rivales se reparten para no taparse) y 1 es el de abajo (yo). */
+  function marcaCarrera(ctx, x, y, w, prog, color, etiqueta, fila) {
     var mx = x + w * R.clamp(prog, 0, 1);
     ctx.beginPath(); ctx.arc(mx, y, 7, 0, Math.PI * 2);
     ctx.fillStyle = color; ctx.fill();
     ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(0,0,0,0.55)'; ctx.stroke();
     ctx.font = '800 12px system-ui, sans-serif';
-    ctx.textAlign = 'center'; ctx.textBaseline = arriba ? 'bottom' : 'top';
-    var ty = arriba ? y - 10 : y + 10;
+    ctx.textAlign = 'center'; ctx.textBaseline = fila < 0 ? 'bottom' : 'top';
+    var ty = fila < 0 ? y - 10 + (fila + 1) * 15 : y + 10;
     ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.strokeStyle = 'rgba(0,0,0,0.65)';
     ctx.strokeText(etiqueta, mx, ty);
     ctx.fillStyle = color; ctx.fillText(etiqueta, mx, ty);
   }
 
-  /* Barra con el avance de los dos corredores hacia la meta. */
+  /* Barra con el avance de todos los corredores hacia la meta. */
   Renderer.prototype.barraCarrera = function (p) {
-    var r = p.rival;
-    if (!r || !r.activo) return;
+    var vivos = p.rivales.filter(function (r) { return r.activo; });
+    if (!vivos.length) return;
     var ctx = this.ctx;
-    var w = 400, h = 9, x = (R.ANCHO - w) / 2, y = 80;
+    var dosFilas = vivos.length > 2;                  // con muchos, los nombres van en dos renglones
+    var w = 400, h = 9, x = (R.ANCHO - w) / 2, y = dosFilas ? 88 : 80;
+    var alto = dosFilas ? 59 : 44, arriba = dosFilas ? 39 : 24;
 
     ctx.save();
     ctx.fillStyle = 'rgba(0,0,0,0.4)';
-    rr(ctx, x - 26, y - 24, w + 62, h + 44, 14); ctx.fill();
+    rr(ctx, x - 26, y - arriba, w + 62, h + alto, 14); ctx.fill();
     ctx.fillStyle = 'rgba(255,255,255,0.25)';
     rr(ctx, x, y - h / 2, w, h, 5); ctx.fill();
     ctx.font = '16px system-ui, sans-serif';
     ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
     ctx.fillText('🏁', x + w + 8, y);
-    marcaCarrera(ctx, x, y, w, r.prog, '#9ad7ff', r.nombre, true);
-    marcaCarrera(ctx, x, y, w, p.progreso(), '#ffd23f', 'VOS', false);
+    for (var i = 0; i < vivos.length; i++) {
+      var r = vivos[i];
+      var fila = dosFilas && i % 2 ? -2 : -1;
+      marcaCarrera(ctx, x, y, w, r.prog, r.color || '#9ad7ff', nombreCorto(r.nombre), fila);
+    }
+    marcaCarrera(ctx, x, y, w, p.progreso(), p.miColor, 'VOS', 1);
     ctx.restore();
   };
 
-  /* 3 · 2 · 1 antes de largar, igual en los dos dispositivos. */
+  /* En la barra no entran los nombres largos. */
+  function nombreCorto(n) {
+    n = String(n || '');
+    return n.length > 9 ? n.slice(0, 8) + '…' : n;
+  }
+
+  /* 3 · 2 · 1 antes de largar, igual en todos los dispositivos. */
   Renderer.prototype.cuentaRegresiva = function (p) {
     if (p.estado !== 'preparando') return;
     var ctx = this.ctx;
