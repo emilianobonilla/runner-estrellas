@@ -3,7 +3,7 @@
 Juego de plataformas estilo *Mario Bros* / *Ika* (Plan Ceibal): el personaje corre,
 salta y junta estrellas hasta llegar a la bandera, esquivando pinchos, pozos y
 enemigos. Funciona **sin internet** y sin instalar nada (salvo el modo *Carrera*,
-que conecta dos dispositivos entre sí).
+que conecta entre sí hasta 6 dispositivos).
 
 **Jugar online:** https://emilianobonilla.github.io/runner-estrellas/
 
@@ -54,7 +54,7 @@ manifest.webmanifest  Datos para instalar como app (nombre, ícono, pantalla com
 js/core/              Utilidades, teclado/táctil, sonido, guardado local, pantalla completa
 js/core/version.js    Número de versión del juego (lo muestra el cartelito del menú)
 js/game/              Nivel, entidades, jugador (física), render, partida
-js/net/               Carrera entre dos dispositivos: red.js (conexión) y carrera.js (reglas)
+js/net/               Carrera entre varios dispositivos: red.js (conexión) y carrera.js (árbitro)
 js/vendor/            PeerJS, la única librería externa (guardada acá, no se baja de internet)
 js/ui/screens.js      Pantallas: menú, niveles, personalizar, ranking, competencias, carrera
 js/main.js            Arranque y bucle del juego
@@ -182,34 +182,44 @@ si el archivo no existe se usa el dibujo por defecto.
 
 Los menús se estilizan en `css/style.css`.
 
-## Carrera 1 vs 1 (dos dispositivos)
+## Carrera multijugador (hasta 6 dispositivos)
 
-Dos jugadores corren **el mismo nivel al mismo tiempo**, cada uno en su computadora,
-tablet o celular. Gana el primero que toca la bandera.
+Hasta **6 corredores** corren **el mismo nivel al mismo tiempo**, cada uno en su
+computadora, tablet o celular. Gana el primero que toca la bandera.
 
-1. Uno entra en **Carrera 1 vs 1 → Crear una sala**. Le aparece un **código de 4 números**.
-2. El otro entra en **Carrera 1 vs 1 → Entrar con un código** y escribe esos 4 números.
-3. Quien creó la sala elige el nivel. Cuando los dos tocan **Estoy listo** arranca una
+1. Uno entra en **Carrera multijugador → Crear una sala**. Le aparece un **código de
+   4 números**.
+2. Los demás entran en **Carrera multijugador → Entrar con un código** y escriben esos
+   4 números (hacen falta al menos 2 corredores para largar).
+3. Quien creó la sala elige el nivel. Cuando **todos** tocan **Estoy listo** arranca una
    cuenta regresiva de 3 y largan juntos.
 
-Durante la carrera se ve al rival **medio transparente** cuando está cerca, y arriba una
-barra muestra quién va adelante. Morir **no te elimina**: reaparecés en el último
-checkpoint y el único castigo es el tiempo perdido, así la carrera siempre termina con
-alguien cruzando la meta. El reloj no se para: el botón ⏸ solo ofrece seguir o abandonar.
-Al terminar se comparan tiempo, estrellas y puntos, y se puede pedir **Revancha** sin
-volver a pasar el código.
+Durante la carrera se ve a los otros **medio transparentes** cuando están cerca, cada uno
+con su color, y arriba una barra muestra quién va adelante. **Las estrellas y los enemigos
+son de todos**: la estrella se la lleva el primero que la toca y desaparece para el resto,
+y el enemigo que alguien pisa queda fuera de la pista para todos (los puntos son solo para
+el que lo pisó). Morir **no te elimina**: reaparecés en el último checkpoint y el único
+castigo es el tiempo perdido. Cuando alguien llega a la meta los demás **siguen corriendo**
+por el 2º y el 3er puesto, y la tabla de resultados se va completando sola. El reloj no se
+para: el botón ⏸ solo ofrece seguir o abandonar. Quien creó la sala puede tocar
+**Revancha** y lleva a todos de vuelta a la sala, aunque alguno siga corriendo.
 
-**Esto es lo único del juego que necesita internet**, porque los dos dispositivos se
-conectan entre ellos (WebRTC). No hay servidor propio ni cuentas: solo se usa un servidor
-público que los presenta, y después los datos de la partida viajan directo de uno al otro.
-Si la red del lugar bloquea ese tipo de conexión, la sala no se abre y el juego lo avisa;
-todo el resto del juego sigue funcionando sin conexión.
+**Esto es lo único del juego que necesita internet**, porque los dispositivos se conectan
+entre ellos (WebRTC). No hay servidor propio ni cuentas: solo se usa un servidor público
+que los presenta, y después los datos de la partida viajan directo entre ellos. Si la red
+del lugar bloquea ese tipo de conexión, la sala no se abre y el juego lo avisa; todo el
+resto del juego sigue funcionando sin conexión.
 
-Detalles técnicos: `js/net/red.js` abre la conexión (el código de sala es el identificador
-en el servidor de PeerJS) y `js/net/carrera.js` define los mensajes (`hola`, `nivel`,
-`listo`, `arrancar`, `pos`, `meta`, `revancha`). La posición viaja 15 veces por segundo y
-se suaviza al dibujarla. Para cambiar de servidor de salas o usar uno propio, se toca solo
-`red.js`.
+Detalles técnicos: la sala tiene forma de **estrella**: todos se conectan al que la creó,
+y ese dispositivo hace de **árbitro**. Es el que reparte la lista de corredores, reenvía
+las posiciones (15 veces por segundo), manda dónde va cada enemigo (10 veces por segundo,
+solo los que tienen a alguien cerca), decide de quién es cada estrella y cada enemigo
+—si dos llegan casi juntos gana el que avisó primero— y arma la tabla de puestos.
+`js/net/red.js` abre las conexiones (el código de sala es el identificador en el servidor
+de PeerJS) y `js/net/carrera.js` define los mensajes y las reglas. El límite de 6 es la
+constante `MAX` arriba de `carrera.js`: se puede subir, pero con muchos más la barra de
+avance se amontona y el árbitro empieza a sufrir en máquinas lentas. Para cambiar de
+servidor de salas o usar uno propio, se toca solo `red.js`.
 
 ## Competencias
 

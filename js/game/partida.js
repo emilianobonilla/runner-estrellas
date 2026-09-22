@@ -17,7 +17,13 @@
     this.infinitas = !!op.infinitas;       // en la carrera se reaparece siempre: el castigo es el tiempo
     // Las vidas vienen de afuera: son del recorrido completo, no de este nivel (js/main.js)
     this.cuenta = op.cuenta || 0;          // segundos de cuenta regresiva antes de largar
-    this.rival = null;                     // lo completa R.Carrera cuando es una carrera
+    // En una carrera las estrellas y los enemigos son de todos: quién se queda
+    // con cada uno lo decide el árbitro (js/net/carrera.js), no esta partida.
+    this.pedirToma = op.pedirToma || null;
+    this.rivales = [];                     // los completa R.Carrera.usarPartida
+    this.rivalPorId = {};
+    this.sigueAlAnfitrion = false;         // los enemigos los comanda otro dispositivo
+    this.miColor = '#ffd23f';              // color de mi marca en la barra de la carrera
 
     this.jugador = new R.Jugador();
     this.camara = { x: 0 };
@@ -47,16 +53,21 @@
     if (this.estado === 'preparando') {
       this.cuenta -= dt;
       if (this.cuenta <= 0) { this.estado = 'jugando'; this.avisar('¡YA!', 0.9); }
-      this.actualizarRival(dt);
+      this.actualizarRivales(dt);
       return;
     }
-    this.actualizarRival(dt);
+    this.actualizarRivales(dt);
 
     if (this.estado === 'jugando') {
       this.tiempo += dt;
       j.actualizar(dt, n, this.input, this.camara.x + 4, this);
-      for (i = 0; i < n.enemigos.length; i++) n.enemigos[i].actualizar(dt, n, j);
-      n.enemigos = n.enemigos.filter(function (e) { return e.vivo || e.tiempoAplastado < 0.6; });
+      // Los enemigos nunca se sacan de la lista: en la carrera cada uno tiene
+      // que seguir teniendo el mismo número en todos los dispositivos.
+      var objetivos = this.objetivos();
+      for (i = 0; i < n.enemigos.length; i++) {
+        n.enemigos[i].actualizar(dt, n, objetivos);
+        if (this.sigueAlAnfitrion) n.enemigos[i].corregir(dt);
+      }
       this.colisiones();
       this.actualizarCamara(false);
       if (j.y > n.alto + 40) this.morir(true);
@@ -90,15 +101,41 @@
     if (this.mensaje) { this.mensaje.t -= dt; if (this.mensaje.t <= 0) this.mensaje = null; }
   };
 
-  /* El rival llega 15 veces por segundo: acercamos su muñeco de a poco para que no salte. */
-  Partida.prototype.actualizarRival = function (dt) {
-    var r = this.rival;
-    if (!r || !r.activo) return;
+  /* Cada rival llega 15 veces por segundo: acercamos su muñeco de a poco para que no salte. */
+  Partida.prototype.actualizarRivales = function (dt) {
     var k = Math.min(1, dt * 14);
-    r.x += (r.dx - r.x) * k;
-    r.y += (r.dy - r.y) * k;
-    r.t += dt;
-    if (r.enSuelo) r.anim += dt * Math.abs(r.vx) / 320;
+    for (var i = 0; i < this.rivales.length; i++) {
+      var r = this.rivales[i];
+      if (!r.activo) continue;
+      r.x += (r.dx - r.x) * k;
+      r.y += (r.dy - r.y) * k;
+      r.t += dt;
+      if (r.enSuelo) r.anim += dt * Math.abs(r.vx) / 320;
+    }
+  };
+
+  /* A quién miran los enemigos que persiguen: en una carrera, a cualquiera
+     de los corredores (el perseguidor elige al que tenga más cerca). */
+  Partida.prototype.objetivos = function () {
+    if (!this.rivales.length) return [this.jugador];
+    var lista = [this.jugador];
+    for (var i = 0; i < this.rivales.length; i++) {
+      var r = this.rivales[i];
+      if (r.activo && !r.muerto) lista.push(r);
+    }
+    return lista;
+  };
+
+  /* Llegó la posición de los enemigos que manda el anfitrión: no los movemos
+     de golpe (se vería un salto), los vamos corrigiendo cuadro a cuadro. */
+  Partida.prototype.sincronizarEnemigos = function (lista) {
+    if (!lista) return;
+    for (var k = 0; k < lista.length; k++) {
+      var d = lista[k], e = this.nivel.enemigos[d[0] | 0];
+      if (!e || !e.vivo) continue;
+      e.vx = d[3];
+      e.apuntarA(d[1], d[2]);
+    }
   };
 
   /* Cuánto del nivel lleva recorrido (0 a 1). Lo usa la barra de la carrera. */
@@ -123,10 +160,8 @@
       e = n.estrellas[i]; if (e.recogida) continue;
       var dx = Math.abs(j.x + j.w / 2 - e.x), dy = Math.abs(j.y + j.h / 2 - e.y);
       if (dx < j.w / 2 + e.r - 4 && dy < j.h / 2 + e.r - 4) {
-        e.recogida = true; this.estrellas++; this.puntos += PUNTOS_ESTRELLA;
         this.audio.estrella();
-        this.explotar(e.x, e.y, this.tema.estrella, 10, 220);
-        if (this.estrellas === this.totalEstrellas) this.avisar('¡Todas las estrellas!');
+        this.reclamar('e', i);
       }
     }
 
@@ -152,11 +187,9 @@
       if (j.x < e.x + e.w && j.x + j.w > e.x && j.y < e.y + e.h && j.y + j.h > e.y) {
         var desdeArriba = j.vy > 0 && j.y + j.h - e.y < 18;
         if (desdeArriba && e.aplastable()) {
-          e.vivo = false; j.vy = -430; j.saltando = false;
-          var vale = e.tipo.puntos || PUNTOS_ENEMIGO;
-          this.puntos += vale; this.puntosEnemigos += vale; this.enemigosPisados++;
+          j.vy = -430; j.saltando = false;
           this.audio.pisar();
-          this.explotar(e.x + e.w / 2, e.y + e.h / 2, this.tema.enemigo, 8, 160);
+          this.reclamar('x', i);
         } else if (j.invulnerable <= 0) {
           var pinchado = desdeArriba && !e.aplastable();
           this.morir(false);
@@ -169,6 +202,55 @@
 
     // Pinchos
     if (j.invulnerable <= 0 && n.peligroEnRect(j.x + 5, j.y + 6, j.w - 10, j.h - 6)) this.morir(false);
+  };
+
+  /* ---------- estrellas y enemigos (compartidos en la carrera) ---------- */
+
+  /* Me quedo con la estrella ('e') o el enemigo ('x') número i. Jugando solo
+     es mío y listo; en una carrera desaparece enseguida de la pantalla pero
+     los puntos los reparte el árbitro, que es el que sabe quién llegó primero. */
+  Partida.prototype.reclamar = function (tipo, i) {
+    var cosa = tipo === 'e' ? this.nivel.estrellas[i] : this.nivel.enemigos[i];
+    if (!cosa) return;
+    cosa.pedida = true;
+    if (!this.pedirToma) return this.aplicarToma(tipo, i, true, '');
+    this.hacerDesaparecer(tipo, i);
+    this.pedirToma(tipo, i);
+  };
+
+  /* Sacarlo de la pantalla (los puntos se anotan aparte). */
+  Partida.prototype.hacerDesaparecer = function (tipo, i) {
+    if (tipo === 'e') {
+      var s = this.nivel.estrellas[i];
+      if (!s || s.recogida) return;
+      s.recogida = true;
+      this.explotar(s.x, s.y, this.tema.estrella, 10, 220);
+    } else {
+      var e = this.nivel.enemigos[i];
+      if (!e || !e.vivo) return;
+      e.vivo = false;
+      this.explotar(e.x + e.w / 2, e.y + e.h / 2, this.tema.enemigo, 8, 160);
+    }
+  };
+
+  /* El árbitro repartió: la estrella o el enemigo desaparece para todos y los
+     puntos van para uno solo. Llega también cuando el que se lo llevó fui yo. */
+  Partida.prototype.aplicarToma = function (tipo, i, esMia, quien) {
+    var cosa = tipo === 'e' ? this.nivel.estrellas[i] : this.nivel.enemigos[i];
+    if (!cosa || cosa.contada) return;
+    cosa.contada = true;
+    this.hacerDesaparecer(tipo, i);
+    if (esMia) {
+      if (tipo === 'e') {
+        this.estrellas++; this.puntos += PUNTOS_ESTRELLA;
+        if (this.estrellas === this.totalEstrellas) this.avisar('¡Todas las estrellas!');
+      } else {
+        var vale = cosa.tipo.puntos || PUNTOS_ENEMIGO;
+        this.puntos += vale; this.puntosEnemigos += vale; this.enemigosPisados++;
+      }
+    } else if (cosa.pedida && tipo === 'e') {
+      this.avisar('⭐ Te la ganó ' + (quien || 'otro corredor'), 1.6);
+    }
   };
 
   Partida.prototype.morir = function (cayo) {
@@ -194,7 +276,7 @@
   };
 
   Partida.prototype.ganar = function () {
-    if (this.alLlegar) this.alLlegar(this);   // primero avisamos al rival, después la animación
+    if (this.alLlegar) this.alLlegar(this);   // primero avisamos al árbitro, después la animación
     this.estado = 'ganado';
     this.temporizador = 2.4;
     var j = this.jugador; j.vx = 0; j.enSuelo = true;
@@ -224,15 +306,6 @@
       tiempo: Math.round(this.tiempo * 10) / 10, completado: completado,
       muertes: this.muertes, vidas: this.vidas, desglose: this.desglose
     });
-  };
-
-  /* El rival tocó la meta antes: cerramos la carrera con un cartel, sin cortar de golpe. */
-  Partida.prototype.perderCarrera = function (nombreRival) {
-    if (this.estado === 'ganado' || this.estado === 'perdida' || this.estado === 'fin') return;
-    this.estado = 'perdida';
-    this.temporizador = 2.2;
-    this.jugador.vx = 0;
-    this.avisar('🏁 ' + (nombreRival || 'El rival') + ' llegó primero', 2.2);
   };
 
   Partida.prototype.explotar = function (x, y, color, n, vel) {

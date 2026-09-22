@@ -133,6 +133,8 @@
       infinitas: carrera,                                   // en la carrera se reaparece siempre
       cuenta: carrera ? (contexto.cuenta || 3) : 0,
       alLlegar: carrera ? function (p) { R.Carrera.avisarMeta(p); } : null,
+      // En la carrera las estrellas y los enemigos son de todos: los reparte el árbitro
+      pedirToma: carrera ? function (k, i) { R.Carrera.pedir(k, i); } : null,
       alTerminar: function (res) { terminar(res); }
     });
     if (carrera) R.Carrera.usarPartida(partida);
@@ -167,9 +169,14 @@
   }
   function continuar() { if (!partida) return; partida.continuar(); R.UI.ocultar(); input.reiniciar(); }
   function reiniciar(seguir) { if (actual) iniciarPartida(actual.nivelDef, actual.contexto, seguir); }
-  function abandonar() {
+  /* Deja la partida sin avisarle a nadie (lo usa la revancha del anfitrión). */
+  function cortarPartida() {
     partida = null; input.activo = false;
     hudEl.classList.add('oculto'); actualizarTactil();
+  }
+
+  function abandonar() {
+    cortarPartida();
     var ctx = actual && actual.contexto;
     if (ctx && ctx.tipo === 'carrera') { R.Carrera.abandonar(); return R.UI.carreraSala(); }
     if (ctx && ctx.tipo === 'competencia') R.UI.verCompetencia(ctx.id); else R.UI.menu();
@@ -194,7 +201,6 @@
           render.dibujar(partida, dt); actualizarHUD(partida);
         }
       } else {
-        if (R.Carrera.activa()) R.Carrera.descontarEspera(dt);
         render.escenaMenu(temaPara(R.niveles[0]), personajeActual(), dt);
       }
     } catch (e) {
@@ -209,6 +215,7 @@
     datos: datos, audio: audio, input: input,
     iniciarPartida: iniciarPartida, pausar: pausar, continuar: continuar, reiniciar: reiniciar, abandonar: abandonar,
     personajeActual: personajeActual, temaPara: temaPara, actualizarTactil: actualizarTactil,
+    cortarPartida: cortarPartida,
     vidas: function () { return vidas; },
     esCarrera: esCarrera,
     fsDisponible: fsDisponible,
@@ -236,12 +243,14 @@
     }
   };
 
-  /* ---------- carrera entre dos dispositivos ---------- */
+  /* ---------- carrera entre varios dispositivos ---------- */
   R.Carrera.onArrancar = function (nivelDef, cuenta) {
     iniciarPartida(nivelDef, { tipo: 'carrera', nombre: R.Carrera.yo.nombre, cuenta: cuenta });
   };
   R.Carrera.onCambio = function () { if (R.UI.alCambiarCarrera) R.UI.alCambiarCarrera(); };
-  // Al cerrar la pestaña avisamos al rival en vez de dejarlo esperando
+  // El anfitrión pidió revancha mientras yo todavía corría: corto y vuelvo a la sala
+  R.Carrera.onVolverASala = function () { cortarPartida(); R.UI.carreraSala(); };
+  // Al cerrar la pestaña avisamos a la sala en vez de dejarlos esperando
   window.addEventListener('pagehide', function () { if (R.Carrera.activa()) R.Carrera.salir(); });
 
   R.UI.menu();

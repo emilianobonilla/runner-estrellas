@@ -58,7 +58,7 @@
       '<p class="subtitulo">Corré, saltá y juntá todas las estrellas</p>' +
       '<div class="botones">' +
       '<button class="btn principal" data-accion="jugar">▶ &nbsp;Jugar</button>' +
-      '<button class="btn" data-accion="carrera">🏃 &nbsp;Carrera 1 vs 1</button>' +
+      '<button class="btn" data-accion="carrera">🏃 &nbsp;Carrera multijugador</button>' +
       '<button class="btn" data-accion="competencias">🏁 &nbsp;Competencias</button>' +
       '<button class="btn" data-accion="ranking">🏆 &nbsp;Ranking</button>' +
       '<button class="btn" data-accion="personalizar">🎨 &nbsp;Personalizar</button>' +
@@ -332,7 +332,7 @@
       '<span class="tecla">Esc</span> o <span class="tecla">P</span> pausa</p>' +
       '<p class="suave">En tablets aparecen botones en pantalla.</p></div>' +
       '<div><h3>Pantalla completa</h3><p>Al empezar un nivel el juego pasa a pantalla completa (se puede cambiar en Personalizar). También con el botón ⛶ del menú o del marcador. <span class="tecla">Esc</span> sale y pausa el juego.</p>' + avisoIOS() + '</div>' +
-      '<div><h3>Carrera 1 vs 1</h3><p>Desde el menú, un jugador crea una sala y le dicta el código de 4 números al otro. Corren el mismo nivel al mismo tiempo, cada uno ve al rival medio transparente y una barra muestra quién va adelante. Gana el primero en tocar la bandera; morir no te elimina, solo te hace perder tiempo. Necesita internet en los dos dispositivos.</p></div>' +
+      '<div><h3>Carrera multijugador</h3><p>Desde el menú, un jugador crea una sala y les dicta el código de 4 números a los demás: entran hasta ' + R.MAX_CORREDORES + ' corredores. Corren el mismo nivel al mismo tiempo, cada uno ve a los otros medio transparentes (cada uno con su color) y una barra muestra quién va adelante. ' + 'Las estrellas y los enemigos son de todos: el que llega primero se queda con la estrella y el que pisa un enemigo lo saca de la pista para todos. ' + 'Gana el primero en tocar la bandera, pero la carrera sigue para repartir el 2º, 3º… puesto; morir no te elimina, solo te hace perder tiempo. Necesita internet en todos los dispositivos.</p></div>' +
       '<div><h3>Objetivo</h3><p>Llegá a la bandera 🏁 juntando la mayor cantidad de estrellas ⭐. Podés retroceder un poco, pero la pantalla no vuelve atrás.</p></div>' +
       '<div><h3>Puntos</h3><p>Estrella: 100 · Pisar un enemigo: 50 a 120 (según el bicho) · Llegar a la meta: 500<br>Bonus por terminar rápido y por juntar todas las estrellas.</p></div>' +
       '<div><h3>Peligros</h3><p>Los pinchos y los enemigos te quitan una vida. Tenés 3 para toda la partida: se comparten entre todos los niveles y, si se acaban, el juego empieza de nuevo. Saltá encima de los enemigos para vencerlos. Los checkpoints se activan al pasar la línea de la bandera y guardan tu avance.</p></div>' +
@@ -344,7 +344,7 @@
       '</div></div>');
   };
 
-  /* ================= CARRERA ENTRE DOS DISPOSITIVOS ================= */
+  /* ================= CARRERA ENTRE VARIOS DISPOSITIVOS ================= */
   function personajePorId(id) {
     return R.personajes.filter(function (p) { return p.id === id; })[0] || R.personajes[0];
   }
@@ -353,10 +353,11 @@
     var C = R.Carrera;
     UI.mostrar(
       '<div class="panel">' +
-      '<div class="barra-superior"><h2>🏃 Carrera 1 vs 1</h2>' + botonVolver('menu') + '</div>' +
-      (C.soportada() ? '' : '<div class="mensaje">Este navegador no puede conectarse con otro dispositivo. Probá con Chrome, Edge o Firefox.</div>') +
-      '<p class="suave">Dos jugadores en dispositivos distintos corren el mismo nivel al mismo tiempo. Uno crea la sala y le pasa el código al otro. Gana el primero que toca la bandera 🏁.</p>' +
-      '<p class="aviso">Ojo: la carrera es lo único del juego que necesita internet en los dos dispositivos, porque se conectan entre ellos. Todo lo demás sigue andando sin conexión.</p>' +
+      '<div class="barra-superior"><h2>🏃 Carrera multijugador</h2>' + botonVolver('menu') + '</div>' +
+      (C.soportada() ? '' : '<div class="mensaje">Este navegador no puede conectarse con otros dispositivos. Probá con Chrome, Edge o Firefox.</div>') +
+      '<p class="suave">Hasta <b>' + R.MAX_CORREDORES + ' corredores</b> en dispositivos distintos corren el mismo nivel al mismo tiempo. Uno crea la sala y le pasa el código a los demás. Gana el primero que toca la bandera 🏁, y los que vienen atrás siguen corriendo por el 2º y el 3er puesto.</p>' +
+      '<p class="suave">Las estrellas y los enemigos son de todos: el que llega primero se lleva la estrella ⭐ y el que pisa a un enemigo lo saca de la pista <b>para todos</b>.</p>' +
+      '<p class="aviso">Ojo: la carrera es lo único del juego que necesita internet en todos los dispositivos, porque se conectan entre ellos. Todo lo demás sigue andando sin conexión.</p>' +
       (location.protocol === 'file:' ? '<p class="aviso">📄 Abriste el juego con doble clic. Si la sala no llega a abrirse, probá entrando desde la página web del juego (o desde un servidor local): algunos navegadores limitan las conexiones cuando el archivo se abre directo del disco.</p>' : '') +
       '<label class="campo"><span>Tu nombre</span><input type="text" maxlength="20" data-campo="nombre" placeholder="Escribí tu nombre" value="' + esc(datos().perfil.nombre) + '"></label>' +
       '<div class="botones">' +
@@ -386,32 +387,37 @@
     UI.mostrar(
       '<div class="panel angosto centrado">' +
       '<h2>' + (C.esAnfitrion ? 'Abriendo la sala…' : 'Buscando la sala ' + esc(C.codigo) + '…') + '</h2>' +
-      '<p class="suave">Conectando con el otro dispositivo.</p>' +
+      '<p class="suave">Conectando con los otros dispositivos.</p>' +
       '<div class="botones"><button class="btn" data-accion="carreraSalir">Cancelar</button></div>' +
       '</div>');
     UI.pantalla = 'carreraConectando';
   };
+
+  /* Ficha de un corredor en la sala, con su color y su personaje. */
+  function fichaCorredor(j, soyYo) {
+    var per = personajePorId(j.personajeId);
+    var color = R.colorCorredor(j.jid);
+    var pie = !j.conectado ? '🔌 Se desconectó' : j.listo ? '✅ Listo' : '⏳ Sin confirmar';
+    return '<div class="tarjeta centrado' + (j.listo && j.conectado ? ' sel' : '') + '"' +
+      ' style="border-left:6px solid ' + color + '">' +
+      '<canvas width="96" height="96" data-personaje="' + esc(per.id) + '"></canvas>' +
+      '<h4 style="color:' + color + '">' + esc(j.nombre) + (soyYo ? ' (vos)' : '') + '</h4>' +
+      '<div class="meta">' + pie + '</div></div>';
+  }
 
   UI.carreraSala = function () {
     var C = R.Carrera;
     if (!C.activa()) return UI.carrera();
     if (C.estado === 'conectando') return UI.carreraConectando();
 
-    var yo = C.yo || { nombre: 'Vos', listo: false };
-    var r = C.rival;
-
-    function ficha(nombre, perId, listo, pie) {
-      var per = personajePorId(perId);
-      return '<div class="tarjeta centrado ' + (listo ? 'sel' : '') + '">' +
-        '<canvas width="96" height="96" data-personaje="' + esc(per.id) + '"></canvas>' +
-        '<h4>' + esc(nombre) + '</h4><div class="meta">' + pie + '</div></div>';
+    var corredores = C.jugadores.slice().sort(function (a, b) { return a.jid - b.jid; });
+    var fichas = corredores.map(function (j) { return fichaCorredor(j, j.jid === C.miId); }).join('');
+    // Mientras haya lugar mostramos una ficha vacía invitando a que entren más
+    var libres = C.lugaresLibres();
+    if (libres > 0) {
+      fichas += '<div class="tarjeta centrado"><div style="font-size:52px;line-height:96px">👤</div>' +
+        '<h4>Lugar libre</h4><div class="meta">Quedan ' + libres + ' de ' + R.MAX_CORREDORES + '</div></div>';
     }
-
-    var fichas = ficha(yo.nombre + ' (vos)', yo.personajeId, yo.listo, yo.listo ? '✅ Listo' : '⏳ Sin confirmar');
-    fichas += r
-      ? ficha(r.nombre, r.personajeId, r.listo && r.conectado,
-          !r.conectado ? '🔌 Se desconectó' : r.listo ? '✅ Listo' : '⏳ Sin confirmar')
-      : '<div class="tarjeta centrado"><div style="font-size:52px;line-height:96px">👤</div><h4>Esperando…</h4><div class="meta">Todavía no entró nadie</div></div>';
 
     var niveles = R.niveles.map(function (nv) {
       var sel = nv.id === C.nivelId;
@@ -421,32 +427,39 @@
     }).join('');
 
     var cabezal = C.esAnfitrion
-      ? '<p class="suave centrado" style="margin-bottom:4px">Código de la sala: decíselo al otro jugador</p>' +
+      ? '<p class="suave centrado" style="margin-bottom:4px">Código de la sala: decíselo a los demás</p>' +
         '<div class="codigo-grande">' + esc(C.codigo) + '</div>'
       : '<p class="suave centrado">Estás en la sala <b>' + esc(C.codigo) + '</b></p>';
 
-    var puedeEstarListo = C.conectada() && r && r.conectado;
+    var conectados = C.conectados().length;
+    var puedeEstarListo = C.conectada() && conectados >= 2;
     var latencia = (C.red && C.red.rtt) ? '<span class="aviso">📶 ' + C.red.rtt + ' ms</span>' : '<span></span>';
     // Al invitado, si se cortó, le ofrecemos volver a entrar con el mismo código
     var botonPrincipal = (!C.conectada() && !C.esAnfitrion)
       ? '<button class="btn principal" data-accion="carreraReintentar">🔄 &nbsp;Volver a entrar</button>'
       : '<button class="btn principal" data-accion="carreraListo"' + (puedeEstarListo ? '' : ' disabled') + '>' +
-        (yo.listo ? '↩ No estoy listo' : '✅ Estoy listo') + '</button>';
+        (C.yo().listo ? '↩ No estoy listo' : '✅ Estoy listo') + '</button>';
+
+    var faltan = C.conectados().filter(function (j) { return !j.listo; }).length;
+    var pieTexto = !puedeEstarListo
+      ? 'Esperando a que entre alguien más… (hacen falta al menos 2 corredores)'
+      : faltan > 0
+        ? 'Cuando estén todos listos arranca la cuenta regresiva. Falta' + (faltan === 1 ? '' : 'n') + ' ' + faltan + '.'
+        : 'Largando…';
 
     UI.mostrar(
       '<div class="panel">' +
-      '<div class="barra-superior"><h2>🏃 Carrera 1 vs 1</h2>' +
+      '<div class="barra-superior"><h2>🏃 Carrera multijugador</h2>' +
       '<button class="btn volver" data-accion="carreraSalir">← Salir</button></div>' +
       (C.error ? '<div class="mensaje">' + esc(C.error) + ' <button class="btn chico" data-accion="carreraReintentar" style="margin-left:8px">Probar de nuevo</button></div>' : '') +
       (C.aviso ? '<div class="mensaje">' + esc(C.aviso) + '</div>' : '') +
+      (C.yaLargaron ? '<div class="mensaje">La carrera ya empezó: quedate acá y corrés en la próxima.</div>' : '') +
       cabezal +
       '<div class="tarjetas" style="margin-top:16px">' + fichas + '</div>' +
       '<h3>Nivel' + (C.esAnfitrion ? '' : ' (lo elige quien creó la sala)') + '</h3>' +
       '<div class="opciones">' + niveles + '</div>' +
       '<div class="pie">' + latencia + botonPrincipal + '</div>' +
-      '<p class="aviso">' + (puedeEstarListo
-        ? 'Cuando los dos estén listos arranca la cuenta regresiva.'
-        : 'Esperando a que se conecte el otro jugador…') + '</p>' +
+      '<p class="aviso">' + pieTexto + '</p>' +
       '</div>');
     UI.pantalla = 'carreraSala';
   };
@@ -455,7 +468,7 @@
     UI.mostrar(
       '<div class="panel angosto centrado">' +
       '<h2 style="font-size:30px">🏃 La carrera sigue</h2>' +
-      '<p class="suave">En una carrera el reloj no se detiene: el otro jugador sigue corriendo mientras leés esto.</p>' +
+      '<p class="suave">En una carrera el reloj no se detiene: los demás siguen corriendo mientras leés esto.</p>' +
       '<div class="botones">' +
       '<button class="btn principal" data-accion="continuar" autofocus>▶ &nbsp;Seguir corriendo</button>' +
       '<button class="btn peligro" data-accion="abandonar">🏳 &nbsp;Abandonar la carrera</button>' +
@@ -463,46 +476,65 @@
     UI.pantalla = 'pausaCarrera';
   };
 
+  function medalla(puesto) {
+    return puesto === 1 ? '🥇' : puesto === 2 ? '🥈' : puesto === 3 ? '🥉' : puesto + 'º';
+  }
+
   UI.resultadosCarrera = function (res) {
     var C = R.Carrera;
     UI._resCarrera = res = res || UI._resCarrera;
     if (!res) return UI.carreraSala();
-    var quien = C.resultado();
-    var rival = C.rival ? C.rival.nombre : 'El rival';
-    var suyo = C.resultadoRival;
+
+    var faltan = C.faltanLlegar();
+    var puesto = C.miPuesto();
+    var total = C.jugadores.length;
 
     var titulo =
-      quien === 'gane' ? '🏆 ¡Ganaste la carrera!' :
-      quien === 'perdi' ? '🏁 Ganó ' + esc(rival) :
-      quien === 'esperando' ? '⏳ Esperando a ' + esc(rival) + '…' :
-      quien === 'ninguno' ? '🏳 Ninguno llegó a la meta' :
-      'Carrera terminada';
+      faltan > 0 ? '⏳ ' + (faltan === 1 ? 'Falta llegar un corredor' : 'Faltan llegar ' + faltan + ' corredores') :
+      !res.completado ? '🏳 No llegaste a la meta' :
+      puesto === 1 ? '🏆 ¡Ganaste la carrera!' :
+      puesto === 2 ? '🥈 ¡Segundo puesto!' :
+      puesto === 3 ? '🥉 ¡Tercer puesto!' :
+      '🏁 Puesto ' + puesto + ' de ' + total;
 
-    function fila(etiqueta, mio, ajeno) {
-      return '<tr><td>' + etiqueta + '</td><td class="num">' + mio + '</td><td class="num">' + ajeno + '</td></tr>';
-    }
-    var sinDatos = '<span class="suave">—</span>';
-    var tabla = '<table class="tabla"><thead><tr><th></th><th class="num">Vos</th><th class="num">' + esc(rival) + '</th></tr></thead><tbody>' +
-      fila('⏱ Tiempo', R.formatearTiempo(res.tiempo), suyo ? R.formatearTiempo(suyo.tiempo) : sinDatos) +
-      fila('🏁 Llegó a la meta', res.completado ? '✓' : '✗', suyo ? (suyo.abandono ? 'abandonó' : suyo.llego ? '✓' : '✗') : sinDatos) +
-      fila('⭐ Estrellas', res.estrellas + '/' + res.totalEstrellas, suyo ? suyo.estrellas + '/' + res.totalEstrellas : sinDatos) +
-      fila('🏆 Puntos', res.puntos, suyo ? suyo.puntos : sinDatos) +
-      '</tbody></table>';
+    var filas = C.ranking().map(function (j, i) {
+      var r = j.res;
+      var estado = !r ? '<span class="suave">corriendo…</span>'
+        : r.abandono ? 'abandonó'
+        : r.llego ? '🏁 llegó'
+        : 'no llegó';
+      return '<tr' + (j.jid === C.miId ? ' class="destacado"' : '') + '>' +
+        '<td class="pos">' + (r && r.llego ? medalla(i + 1) : '–') + '</td>' +
+        '<td style="color:' + R.colorCorredor(j.jid) + '">' + esc(j.nombre) + (j.jid === C.miId ? ' (vos)' : '') + '</td>' +
+        '<td class="num">' + (r && r.llego ? R.formatearTiempo(r.tiempo) : '—') + '</td>' +
+        '<td class="num">' + (r ? r.estrellas : '—') + '</td>' +
+        '<td class="num">' + (r ? r.puntos : '—') + '</td>' +
+        '<td>' + estado + '</td></tr>';
+    }).join('');
+
+    var tabla = '<table class="tabla"><thead><tr><th class="pos"></th><th>Corredor</th>' +
+      '<th class="num">⏱</th><th class="num">⭐</th><th class="num">🏆</th><th></th></tr></thead>' +
+      '<tbody>' + filas + '</tbody></table>';
+
+    var revancha = C.conectada()
+      ? (C.esAnfitrion
+        ? '<button class="btn principal" data-accion="carreraRevancha">🔁 &nbsp;Revancha (todos a la sala)</button>'
+        : '<button class="btn principal" data-accion="carreraRevancha">↩ &nbsp;Volver a la sala</button>')
+      : '';
 
     UI.mostrar(
-      '<div class="panel angosto centrado">' +
+      '<div class="panel centrado">' +
       '<h2 style="font-size:32px">' + titulo + '</h2>' +
-      (quien === 'esperando' ? '<p class="suave">Todavía está corriendo.</p>'
-        : quien === 'sin-datos' ? '<p class="suave">No pudimos comparar: se cortó la conexión.</p>' : '') +
+      (faltan > 0 ? '<p class="suave">La tabla se va completando sola a medida que van llegando.</p>' : '') +
+      (!C.conectada() ? '<p class="suave">Se cortó la conexión con la sala: puede faltar algún resultado.</p>' : '') +
       '<div class="contenedor-tabla" style="margin-top:14px">' + tabla + '</div>' +
-      '<div class="botones">' +
-      (C.conectada() ? '<button class="btn principal" data-accion="carreraRevancha">🔁 &nbsp;Revancha</button>' : '') +
+      '<div class="botones">' + revancha +
       '<button class="btn" data-accion="carreraSalir">← &nbsp;Salir de la carrera</button>' +
       '</div></div>');
     UI.pantalla = 'resultadosCarrera';
   };
 
-  /* La red cambió algo (entró el rival, se puso listo, llegó su resultado): redibujamos. */
+  /* La red cambió algo (entró alguien, se puso listo, llegó un resultado): redibujamos. */
   UI.alCambiarCarrera = function () {
     var C = R.Carrera;
     if (C.estado === 'corriendo') return;                 // durante la carrera manda el lienzo
