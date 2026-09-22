@@ -198,8 +198,9 @@ Durante la carrera se ve a los otros **medio transparentes** cuando están cerca
 con su color, y arriba una barra muestra quién va adelante. **Las estrellas y los enemigos
 son de todos**: la estrella se la lleva el primero que la toca y desaparece para el resto,
 y el enemigo que alguien pisa queda fuera de la pista para todos (los puntos son solo para
-el que lo pisó). Morir **no te elimina**: reaparecés en el último checkpoint y el único
-castigo es el tiempo perdido. Cuando alguien llega a la meta los demás **siguen corriendo**
+el que lo pisó). La estrella **vuelve a aparecer a los 3 segundos**, para que el que viene
+último también la pueda juntar; el enemigo pisado **no vuelve**. Morir **no te elimina**:
+reaparecés en el último checkpoint y el único castigo es el tiempo perdido. Cuando alguien llega a la meta los demás **siguen corriendo**
 por el 2º y el 3er puesto, y la tabla de resultados se va completando sola. El reloj no se
 para: el botón ⏸ solo ofrece seguir o abandonar. Quien creó la sala puede tocar
 **Revancha** y lleva a todos de vuelta a la sala, aunque alguno siga corriendo.
@@ -214,7 +215,9 @@ Detalles técnicos: la sala tiene forma de **estrella**: todos se conectan al qu
 y ese dispositivo hace de **árbitro**. Es el que reparte la lista de corredores, reenvía
 las posiciones (15 veces por segundo), manda dónde va cada enemigo (10 veces por segundo,
 solo los que tienen a alguien cerca), decide de quién es cada estrella y cada enemigo
-—si dos llegan casi juntos gana el que avisó primero— y arma la tabla de puestos.
+—si dos llegan casi juntos gana el que avisó primero—, cuenta los 3 segundos para devolver
+cada estrella (avisa con `vuelve`, así reaparecen a la vez en todas las pantallas) y arma
+la tabla de puestos. Esa espera es la constante `VUELVE_ESTRELLA` de `carrera.js`.
 `js/net/red.js` abre las conexiones (el código de sala es el identificador en el servidor
 de PeerJS) y `js/net/carrera.js` define los mensajes y las reglas. El límite de 6 es la
 constante `MAX` arriba de `carrera.js`: se puede subir, pero con muchos más la barra de

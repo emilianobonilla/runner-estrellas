@@ -26,6 +26,7 @@
      poss       {j:[[jid,x,y,...]]}   dónde va cada uno, 15 veces por segundo
      enes       {e:[[i,x,y,vx]]}      dónde van los enemigos, 10 por segundo
      tomada     {k,i,de}              esa estrella/enemigo es de tal corredor
+     vuelve     {i}                   esa estrella volvió a aparecer
      llego      {jid,puesto}          alguien tocó la bandera
      revancha   {}                    todos de vuelta a la sala                 */
 (function (R) {
@@ -37,6 +38,10 @@
   var HZ = 15;                 // envíos de posición por segundo
   var HZ_ENEMIGOS = 10;        // correcciones de enemigos por segundo (las manda el árbitro)
   var CUENTA = 3;              // segundos de cuenta regresiva
+  /* Las estrellas vuelven a aparecer a los 3 segundos de que alguien se las
+     lleva, así el que viene último también tiene su oportunidad. Los enemigos
+     NO vuelven: al que lo pisó le queda el camino limpio. */
+  var VUELVE_ESTRELLA = 3;
   var VISTA = R.ANCHO * 1.5;   // los enemigos se sincronizan solo si hay alguien cerca
 
   R.MAX_CORREDORES = MAX;
@@ -64,7 +69,8 @@
     _acum: 0,
     _acumEne: 0,
     _pos: {},             // anfitrión: última posición conocida de cada corredor
-    _tomadas: {}          // anfitrión: de quién es cada estrella/enemigo
+    _tomadas: {},         // anfitrión: de quién es cada estrella/enemigo
+    _vuelven: []          // estrellas esperando para volver a aparecer: [{i, t}]
   };
 
   function avisarCambio() { if (C.onCambio) C.onCambio(); }
@@ -125,7 +131,7 @@
     C.max = MAX;
     C.yaLargaron = false;
     C.jugadores = anfitrion ? [nuevoJugador(0, null, miNombre(), miPersonaje())] : [];
-    C._partida = null; C._pos = {}; C._tomadas = {};
+    C._partida = null; C._pos = {}; C._tomadas = {}; C._vuelven = [];
     C.nivelId = C.nivelId || (R.niveles[0] && R.niveles[0].id);
     C.red = new R.Red(MAX);
     C.red.onEstado = alCambiarRed;
@@ -140,7 +146,7 @@
     if (C.red) { if (C.red.conectada()) C.red.enviar('chau', {}); C.red.cerrar(); }
     C.red = null;
     C.estado = 'inactiva';
-    C.jugadores = []; C._partida = null; C._pos = {}; C._tomadas = {};
+    C.jugadores = []; C._partida = null; C._pos = {}; C._tomadas = {}; C._vuelven = [];
     C.error = ''; C.aviso = '';
   };
 
@@ -261,6 +267,10 @@
       aplicarTomada(d.k === 'x' ? 'x' : 'e', d.i | 0, d.de | 0);
       return;
 
+    } else if (tipo === 'vuelve') {
+      if (C._partida) C._partida.revivirEstrella(d.i | 0);
+      return;
+
     } else if (tipo === 'llego') {
       cantarLlegada(d.jid | 0, d.puesto | 0);
       return;
@@ -333,7 +343,7 @@
     C.estado = 'corriendo';
     C.yaLargaron = true;
     C._acum = 0; C._acumEne = 0;
-    C._pos = {}; C._tomadas = {};
+    C._pos = {}; C._tomadas = {}; C._vuelven = [];
     C.jugadores.forEach(function (j) { j.res = null; j.listo = false; });
     if (C.esAnfitrion) difundirSala();
     if (C.onArrancar) C.onArrancar(C.nivel(), cuenta);
@@ -399,9 +409,13 @@
     }
   }
 
-  /* Se llama una vez por cuadro desde el bucle del juego. */
+  /* Se llama una vez por cuadro desde el bucle del juego. Puede venir sin
+     partida: el anfitrión tiene que seguir devolviendo las estrellas aunque él
+     ya haya terminado su carrera y los demás sigan corriendo. */
   C.tick = function (p, dt) {
-    if (C.estado !== 'corriendo' || !C.conectada()) return;
+    if (C.estado !== 'corriendo' && C.estado !== 'fin') return;
+    devolverEstrellas(dt);
+    if (!p || C.estado !== 'corriendo' || !C.conectada()) return;
     var j = p.jugador;
 
     C._acum += dt;
@@ -458,8 +472,10 @@
   C.pedir = function (k, i) {
     if (C.estado !== 'corriendo') return;
     if (C.esAnfitrion) return arbitrar(k, i, C.miId);
-    if (C.conectada()) C.red.enviar('pido', { k: k, i: i });
-    else aplicarTomada(k, i, C.miId);        // sin red seguimos la carrera en solitario
+    if (C.conectada()) return C.red.enviar('pido', { k: k, i: i });
+    // Sin red seguimos la carrera en solitario: me la quedo y me la devuelvo yo
+    aplicarTomada(k, i, C.miId);
+    if (k === 'e') programarVuelta(i);
   };
 
   function arbitrar(k, i, jid) {
@@ -468,6 +484,26 @@
     C._tomadas[clave] = jid;
     C.red.enviar('tomada', { k: k, i: i, de: jid });
     aplicarTomada(k, i, jid);
+    if (k === 'e') programarVuelta(i);
+  }
+
+  /* La estrella number i vuelve a aparecer en unos segundos. El reloj lo lleva
+     el árbitro (o cada uno, si se cortó la red), así vuelve a la vez para todos. */
+  function programarVuelta(i) {
+    for (var n = 0; n < C._vuelven.length; n++) if (C._vuelven[n].i === i) return;
+    C._vuelven.push({ i: i, t: VUELVE_ESTRELLA });
+  }
+
+  function devolverEstrellas(dt) {
+    for (var n = C._vuelven.length - 1; n >= 0; n--) {
+      var v = C._vuelven[n];
+      v.t -= dt;
+      if (v.t > 0) continue;
+      C._vuelven.splice(n, 1);
+      delete C._tomadas['e' + v.i];          // vuelve a estar en juego
+      if (C.esAnfitrion) C.red.enviar('vuelve', { i: v.i });
+      if (C._partida) C._partida.revivirEstrella(v.i);
+    }
   }
 
   function aplicarTomada(k, i, jid) {

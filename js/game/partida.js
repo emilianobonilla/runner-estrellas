@@ -242,8 +242,13 @@
     this.hacerDesaparecer(tipo, i);
     if (esMia) {
       if (tipo === 'e') {
-        this.estrellas++; this.puntos += PUNTOS_ESTRELLA;
-        if (this.estrellas === this.totalEstrellas) this.avisar('¡Todas las estrellas!');
+        this.puntos += PUNTOS_ESTRELLA;
+        // El marcador cuenta cuántas de las del nivel junté: en la carrera una
+        // estrella puede volver a aparecer, pero el ⭐ x/y no se pasa del total.
+        if (this.estrellas < this.totalEstrellas) {
+          this.estrellas++;
+          if (this.estrellas === this.totalEstrellas) this.avisar('¡Todas las estrellas!');
+        }
       } else {
         var vale = cosa.tipo.puntos || PUNTOS_ENEMIGO;
         this.puntos += vale; this.puntosEnemigos += vale; this.enemigosPisados++;
@@ -251,6 +256,16 @@
     } else if (cosa.pedida && tipo === 'e') {
       this.avisar('⭐ Te la ganó ' + (quien || 'otro corredor'), 1.6);
     }
+  };
+
+  /* La estrella vuelve a aparecer (solo en la carrera, a los pocos segundos de
+     que alguien se la llevó): queda otra vez en juego para todos, con las
+     mismas reglas. Los enemigos no vuelven. */
+  Partida.prototype.revivirEstrella = function (i) {
+    var s = this.nivel.estrellas[i];
+    if (!s || !s.recogida) return;
+    s.recogida = false; s.pedida = false; s.contada = false;
+    this.explotar(s.x, s.y, this.tema.estrella, 6, 120);
   };
 
   Partida.prototype.morir = function (cayo) {

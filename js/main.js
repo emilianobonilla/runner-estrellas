@@ -196,13 +196,13 @@
           partida.actualizar(PASO);
           acumulado -= PASO; pasos++;
         }
-        if (partida) {
-          R.Carrera.tick(partida, dt);
-          render.dibujar(partida, dt); actualizarHUD(partida);
-        }
+        if (partida) { render.dibujar(partida, dt); actualizarHUD(partida); }
       } else {
         render.escenaMenu(temaPara(R.niveles[0]), personajeActual(), dt);
       }
+      // Va siempre, con partida o sin ella: el anfitrión tiene que seguir
+      // devolviendo las estrellas aunque él ya haya terminado su carrera.
+      R.Carrera.tick(partida, dt);
     } catch (e) {
       // Un error de dibujo o lógica no debe congelar el juego
       console.error('Error en el bucle del juego:', e);
