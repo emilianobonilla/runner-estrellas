@@ -35,6 +35,23 @@ jobs:
           ref: main
           fetch-depth: 0
 
+      - name: Reparar una etiqueta de versión faltante
+        run: |
+          VERSION_ACTUAL=$(sed -n "s/.*numero: '\([0-9.]*\)'.*/\1/p" js/core/version.js | head -n1)
+          [ -z "$VERSION_ACTUAL" ] && exit 0
+          git rev-parse -q --verify "refs/tags/v$VERSION_ACTUAL" >/dev/null && exit 0
+
+          COMMIT_VERSION=$(git log --grep="^Versión $VERSION_ACTUAL —" -1 --format=%H)
+          [ -z "$COMMIT_VERSION" ] && exit 0
+          git tag "v$VERSION_ACTUAL" "$COMMIT_VERSION"
+
+          for i in 1 2 3; do
+            git push origin "v$VERSION_ACTUAL" && exit 0
+            sleep $((i * 2))
+          done
+          echo "No se pudo reparar la etiqueta v$VERSION_ACTUAL"
+          exit 1
+
       - name: Calcular la versión nueva
         id: calc
         env:
@@ -80,7 +97,19 @@ jobs:
             git push origin HEAD:main && break
             git pull --rebase origin main
           done
-          git push origin "v$NUMERO"
+          # GitHub puede rechazar transitoriamente la actualización de refs de
+          # etiquetas aunque el commit anterior ya haya llegado a main. La
+          # etiqueta se reintenta y se verifica para no dejar una versión sin
+          # tag ni release.
+          ETIQUETA_OK=false
+          for i in 1 2 3; do
+            if git push origin "v$NUMERO"; then
+              ETIQUETA_OK=true
+              break
+            fi
+            sleep $((i * 2))
+          done
+          $ETIQUETA_OK || { echo "No se pudo publicar v$NUMERO después de 3 intentos"; exit 1; }
 
       - name: Crear la release en GitHub
         env:
@@ -91,7 +120,8 @@ jobs:
         run: |
           NOTAS="Publicada automáticamente al hacer merge a main."
           [ -n "$PR" ] && NOTAS="$NOTAS Cambios: #$PR"
-          gh release create "v$NUMERO" --title "v$NUMERO — $TITULO" --notes "$NOTAS"
+          gh release view "v$NUMERO" >/dev/null 2>&1 || \
+            gh release create "v$NUMERO" --title "v$NUMERO — $TITULO" --notes "$NOTAS"
 
       - name: Publicar de nuevo en GitHub Pages
         env:
