@@ -5,7 +5,7 @@
    Solo el modo Carrera usa esto: el resto del juego sigue andando sin internet. */
 (function (R) {
   var PREFIJO = 'runner-estrellas-';   // evita chocar con otras aplicaciones del servidor público
-  var ESPERA = 15000;                  // ms máximos para abrir la sala o encontrar al anfitrión
+  var ESPERA = 30000;                  // ms máximos para abrir la sala o encontrar al anfitrión
   var PING = 2000;                     // ms entre mediciones de latencia
   var SILENCIO = 12000;                // ms sin recibir nada = damos la conexión por perdida
 
