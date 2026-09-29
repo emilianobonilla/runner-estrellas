@@ -260,7 +260,7 @@
 
   /* ---------- carrera entre varios dispositivos ---------- */
   R.Carrera.onArrancar = function (nivelDef, cuenta) {
-    iniciarPartida(nivelDef, { tipo: 'carrera', nombre: R.Carrera.yo.nombre, cuenta: cuenta });
+    iniciarPartida(nivelDef, { tipo: 'carrera', nombre: R.Carrera.yo().nombre, cuenta: cuenta });
   };
   R.Carrera.onCambio = function () { if (R.UI.alCambiarCarrera) R.UI.alCambiarCarrera(); };
   // El anfitrión pidió revancha mientras yo todavía corría: corto y vuelvo a la sala

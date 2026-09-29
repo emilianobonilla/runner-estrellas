@@ -437,6 +437,14 @@
 
     var conectados = C.conectados().length;
     var puedeEstarListo = C.conectada() && conectados >= 2;
+    var puedeCambiarPersonaje = C.estado === 'sala' && C.conectada() && !C.yaLargaron;
+    var miPersonajeId = C.yo().personajeId;
+    var selectorPersonajes = R.personajes.map(function (p) {
+      return '<button type="button" class="personaje-sala' + (p.id === miPersonajeId ? ' sel' : '') + '"' +
+        ' data-accion="carreraPersonaje" data-arg="' + esc(p.id) + '"' + (puedeCambiarPersonaje ? '' : ' disabled') + '>' +
+        '<canvas width="72" height="72" data-personaje="' + esc(p.id) + '"></canvas>' +
+        '<span>' + esc(p.nombre) + '</span></button>';
+    }).join('');
     var latencia = (C.red && C.red.rtt) ? '<span class="aviso">📶 ' + C.red.rtt + ' ms</span>' : '<span></span>';
     // Al invitado, si se cortó, le ofrecemos volver a entrar con el mismo código
     var botonPrincipal = (!C.conectada() && !C.esAnfitrion)
@@ -462,6 +470,8 @@
       (C.yaLargaron ? '<div class="mensaje">La carrera ya empezó: quedate acá y corrés en la próxima.</div>' : '') +
       cabezal +
       '<div class="tarjetas" style="margin-top:16px">' + fichas + '</div>' +
+      '<h3>Tu personaje <span class="suave" style="font-size:13px;text-transform:none;letter-spacing:0">(tu nombre no cambia)</span></h3>' +
+      '<div class="personajes-sala">' + selectorPersonajes + '</div>' +
       '<h3>Nivel' + (C.esAnfitrion ? '' : ' (lo elige quien creó la sala)') + '</h3>' +
       '<div class="opciones">' + niveles + '</div>' +
       '<div class="pie">' + latencia + botonPrincipal + '</div>' +
@@ -643,6 +653,7 @@
     },
     carreraSalir: function () { R.Carrera.salir(); UI.carrera(); },
     carreraListo: function () { R.Carrera.alternarListo(); },
+    carreraPersonaje: function (id) { R.Carrera.elegirPersonaje(id); },
     carreraNivel: function (id) { R.Carrera.elegirNivel(id); },
     carreraRevancha: function () { R.Carrera.pedirRevancha(); UI.carreraSala(); },
 

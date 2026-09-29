@@ -165,6 +165,19 @@ input.codigo {
   user-select: all;
 }
 
+/* Selector compacto para cambiar de personaje sin salir de la sala. */
+.personajes-sala { display: flex; gap: 10px; flex-wrap: wrap; }
+.personaje-sala {
+  min-width: 92px; padding: 8px 10px; border-radius: 12px;
+  border: 3px solid transparent; background: var(--panel2); color: var(--texto);
+  font: inherit; font-weight: 700; cursor: pointer;
+  transition: border-color .12s, transform .08s, background .12s;
+}
+.personaje-sala:hover { transform: translateY(-2px); background: #3a4b70; }
+.personaje-sala.sel { border-color: var(--acento); }
+.personaje-sala canvas { display: block; margin: 0 auto 2px; }
+.personaje-sala:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+
 .tarjetas { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; }
 .tarjeta {
   background: var(--panel2); border-radius: 12px; padding: 14px;
@@ -231,6 +244,9 @@ table.tabla { width: 100%; border-collapse: collapse; margin-top: 8px; font-size
   .btn { padding: 12px 18px; font-size: 17px; }
   input.codigo { font-size: 32px; letter-spacing: 10px; text-indent: 10px; }
   .codigo-grande { font-size: 42px; letter-spacing: 8px; text-indent: 8px; }
+  .personajes-sala { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  .personaje-sala { min-width: 0; padding: 6px 3px; font-size: 13px; }
+  .personaje-sala canvas { width: 54px; height: 54px; }
   .gran-numero { font-size: 46px; }
 }
 .pie { margin-top: 20px; display: flex; gap: 10px; justify-content: space-between; flex-wrap: wrap; }

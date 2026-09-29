@@ -12,6 +12,7 @@
 
    Mensajes que un invitado le manda al anfitrión:
      hola     {nombre, personaje}     presentación al conectarse
+     personaje {personaje}            cambié mi personaje en la sala
      listo    {listo}                 estoy pronto (o me arrepentí)
      pos      {x,y,vx,m,s,mu,pr,t}    dónde voy, 15 veces por segundo
      pido     {k,i}                   me quedo con la estrella/enemigo número i
@@ -78,6 +79,9 @@
   function nivelPorId(id) { return R.niveles.filter(function (n) { return n.id === id; })[0] || null; }
   function personajePorId(id) {
     return R.personajes.filter(function (p) { return p.id === id; })[0] || R.personajes[0];
+  }
+  function personajeValido(id) {
+    return R.personajes.some(function (p) { return p.id === id; });
   }
   function miNombre() { return (perfil().nombre || '').trim() || 'Anónimo'; }
   function miPersonaje() { return (R.app.personajeActual() || {}).id; }
@@ -226,6 +230,11 @@
       difundirSala();
       if (C.todosListos()) return largar();
 
+    } else if (tipo === 'personaje') {
+      if (C.estado !== 'sala' || C.yaLargaron || !personajeValido(d.personaje)) return;
+      j.personajeId = d.personaje;
+      difundirSala();
+
     } else if (tipo === 'pos') {
       guardarPosicion(j.jid, d);
       aplicarPosicion(j.jid, d);
@@ -322,6 +331,21 @@
     C.nivelId = id;
     C.jugadores.forEach(function (j) { j.listo = false; });   // cambió el nivel: se vuelve a confirmar
     difundirSala();
+    avisarCambio();
+  };
+
+  /* El nombre queda fijado al entrar, pero el personaje se puede cambiar en
+     la sala hasta que largue la carrera. El anfitrión reparte el cambio para
+     que todos vean la misma ficha y creen el rival con el personaje correcto. */
+  C.elegirPersonaje = function (id) {
+    if (C.estado !== 'sala' || C.yaLargaron || !C.conectada() || !personajeValido(id)) return;
+    var yo = C.jugador(C.miId);
+    if (!yo || yo.personajeId === id) return;
+    perfil().personaje = id;
+    R.Storage.guardar();
+    yo.personajeId = id;
+    if (C.esAnfitrion) difundirSala();
+    else C.red.enviar('personaje', { personaje: id });
     avisarCambio();
   };
 
