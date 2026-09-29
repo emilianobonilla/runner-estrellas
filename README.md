@@ -65,15 +65,15 @@ herramientas/         Scripts de apoyo (probar niveles, escribir la versión)
 
 Como en Mario Bros, los niveles se agrupan en **mundos** y todos los niveles de un
 mundo comparten la misma estética. Los mundos se definen en `data/worlds.js` y hoy
-hay 5, con 2 niveles cada uno:
+hay 5, con 5 niveles cada uno:
 
 | Mundo | Nombre | Tema | Enemigo | Dificultad | Niveles |
 |-------|--------|------|---------|------------|---------|
-| 1 | Prado Soleado | `prado` | Caminante | ★☆☆☆☆ | 1-1 El Prado · 1-2 Sendero del Prado |
-| 2 | Cuevas Profundas | `cueva` | Saltarín | ★★☆☆☆ | 2-1 La Cueva · 2-2 Túnel Profundo |
-| 3 | Costa Dorada | `playa` | Volador | ★★★☆☆ | 3-1 La Playa · 3-2 Marea Alta |
-| 4 | Tierra del Volcán | `volcan` | Perseguidor | ★★★★☆ | 4-1 Salto de Rocas · 4-2 El Volcán |
-| 5 | Castillo de las Estrellas | `castillo` | Blindado | ★★★★★ | 5-1 Las Torres · 5-2 El Castillo |
+| 1 | Prado Soleado | `prado` | Caminante | ★☆☆☆☆ | 1-1 El Prado · 1-2 Sendero del Prado · 1-3 Puente de Flores · 1-4 Colinas Verdes · 1-5 Carrera del Arroyo |
+| 2 | Cuevas Profundas | `cueva` | Saltarín | ★★☆☆☆ | 2-1 La Cueva · 2-2 Túnel Profundo · 2-3 Galería de Cristal · 2-4 Ecos de Piedra · 2-5 Abismo Subterráneo |
+| 3 | Costa Dorada | `playa` | Volador | ★★★☆☆ | 3-1 La Playa · 3-2 Marea Alta · 3-3 Dunas Doradas · 3-4 Islas de Coral · 3-5 Faro del Horizonte |
+| 4 | Tierra del Volcán | `volcan` | Perseguidor | ★★★★☆ | 4-1 Salto de Rocas · 4-2 El Volcán · 4-3 Río de Lava · 4-4 Cráter Ardiente · 4-5 Corazón del Volcán |
+| 5 | Castillo de las Estrellas | `castillo` | Blindado | ★★★★★ | 5-1 Las Torres · 5-2 El Castillo · 5-3 Patio Real · 5-4 Murallas Nocturnas · 5-5 Trono de las Estrellas |
 
 En la pantalla *Elegí un nivel* cada mundo aparece con su título, una muestra de su
 estética y sus niveles numerados `1-1`, `1-2`, etc.
@@ -85,7 +85,7 @@ Un nivel hereda el tema, el enemigo y la dificultad de su mundo; si el nivel pon
 
 ## Crear un nivel nuevo
 
-El juego trae 10 niveles (`nivel-01` a `nivel-10`), de dificultad 1 a 5. Para agregar otro:
+El juego trae 25 niveles (`nivel-01` a `nivel-25`), de dificultad 1 a 5. Para agregar otro:
 
 1. Copiá `data/levels/nivel-04-cueva.js` a `data/levels/nivel-11-loquesea.js`.
 2. Cambiá `id`, `orden`, `nombre`, `descripcion`, `mundo` (el id de un mundo de
