@@ -402,7 +402,7 @@
     var igual = j.version === R.VERSION.numero;
     var version = '<div class="meta"' + (igual ? '' : ' style="color:var(--peligro);font-weight:700"') + '>' +
       (j.version ? 'v' + esc(j.version) : 'versión vieja') + (igual ? '' : ' ⚠') + '</div>';
-    return '<div class="tarjeta centrado' + (j.listo && j.conectado ? ' sel' : '') + '"' +
+    return '<div class="tarjeta centrado ficha-corredor' + (j.listo && j.conectado ? ' sel' : '') + '"' +
       ' style="border-left:6px solid ' + color + '">' +
       '<canvas width="96" height="96" data-personaje="' + esc(per.id) + '"></canvas>' +
       '<h4 style="color:' + color + '">' + esc(j.nombre) + (soyYo ? ' (vos)' : '') + '</h4>' +
@@ -423,16 +423,28 @@
         '<h4>Lugar libre</h4><div class="meta">Quedan ' + libres + ' de ' + R.MAX_CORREDORES + '</div></div>';
     }
 
-    var niveles = R.niveles.map(function (nv) {
-      var sel = nv.id === C.nivelId;
-      return '<span class="chip ' + (sel ? 'sel' : '') + '"' +
-        (C.esAnfitrion ? ' data-accion="carreraNivel" data-arg="' + esc(nv.id) + '"' : '') + '>' +
-        esc(etiqueta(nv)) + '</span>';
-    }).join('');
+    function opcionesNivel(lista) {
+      return lista.map(function (nv) {
+        var sel = nv.id === C.nivelId;
+        if (!C.esAnfitrion) return '<span class="chip ' + (sel ? 'sel' : '') + '"' + (sel ? ' aria-current="true"' : '') + '>' + esc(etiqueta(nv)) + '</span>';
+        return '<button type="button" class="chip ' + (sel ? 'sel' : '') + '" data-accion="carreraNivel" data-arg="' + esc(nv.id) + '"' +
+          ' aria-pressed="' + (sel ? 'true' : 'false') + '">' + esc(etiqueta(nv)) + '</button>';
+      }).join('');
+    }
+    function grupoNiveles(m, lista) {
+      if (!lista.length) return '';
+      var abierto = lista.some(function (n) { return n.id === C.nivelId; });
+      return '<details class="selector-mundo"' + (abierto ? ' open' : '') + '>' +
+        '<summary>Mundo ' + esc(m.orden) + ' · ' + esc(m.nombre) + '<span>' + lista.length + ' niveles</span></summary>' +
+        '<div class="opciones">' + opcionesNivel(lista) + '</div></details>';
+    }
+    var niveles = R.mundos.map(function (m) { return grupoNiveles(m, R.nivelesDe(m.id)); }).join('');
+    var otros = R.niveles.filter(function (n) { return !R.mundoDe(n); });
+    if (otros.length) niveles += grupoNiveles({ orden: '', nombre: 'Otros' }, otros);
 
     var cabezal = C.esAnfitrion
       ? '<p class="suave centrado" style="margin-bottom:4px">Código de la sala: decíselo a los demás</p>' +
-        '<div class="codigo-grande">' + esc(C.codigo) + '</div>'
+        '<div class="codigo-grande" aria-label="Código de sala ' + esc(C.codigo.split('').join(' ')) + '">' + esc(C.codigo) + '</div>'
       : '<p class="suave centrado">Estás en la sala <b>' + esc(C.codigo) + '</b></p>';
 
     var conectados = C.conectados().length;
@@ -441,11 +453,15 @@
     var miPersonajeId = C.yo().personajeId;
     var selectorPersonajes = R.personajes.map(function (p) {
       return '<button type="button" class="personaje-sala' + (p.id === miPersonajeId ? ' sel' : '') + '"' +
-        ' data-accion="carreraPersonaje" data-arg="' + esc(p.id) + '"' + (puedeCambiarPersonaje ? '' : ' disabled') + '>' +
+        ' data-accion="carreraPersonaje" data-arg="' + esc(p.id) + '" aria-pressed="' + (p.id === miPersonajeId ? 'true' : 'false') + '"' +
+        ' aria-label="Elegir a ' + esc(p.nombre) + '"' + (puedeCambiarPersonaje ? '' : ' disabled') + '>' +
         '<canvas width="72" height="72" data-personaje="' + esc(p.id) + '"></canvas>' +
         '<span>' + esc(p.nombre) + '</span></button>';
     }).join('');
-    var latencia = (C.red && C.red.rtt) ? '<span class="aviso">📶 ' + C.red.rtt + ' ms</span>' : '<span></span>';
+    var redInfo = [];
+    if (C.red && C.red.rtt) redInfo.push('📶 ' + C.red.rtt + ' ms');
+    if (C.red && C.red.tieneTurn && C.red.tieneTurn()) redInfo.push('🛡 respaldo TURN');
+    var latencia = '<span class="aviso">' + redInfo.join(' · ') + '</span>';
     // Al invitado, si se cortó, le ofrecemos volver a entrar con el mismo código
     var botonPrincipal = (!C.conectada() && !C.esAnfitrion)
       ? '<button class="btn principal" data-accion="carreraReintentar">🔄 &nbsp;Volver a entrar</button>'
@@ -463,17 +479,17 @@
       '<div class="panel">' +
       '<div class="barra-superior"><h2>🏃 Carrera multijugador</h2>' +
       '<button class="btn volver" data-accion="carreraSalir">← Salir</button></div>' +
-      (C.error ? '<div class="mensaje">' + esc(C.error) + ' <button class="btn chico" data-accion="carreraReintentar" style="margin-left:8px">Probar de nuevo</button></div>' : '') +
-      (C.aviso ? '<div class="mensaje">' + esc(C.aviso) + '</div>' : '') +
+      (C.error ? '<div class="mensaje" role="alert">' + esc(C.error) + ' <button class="btn chico" data-accion="carreraReintentar" style="margin-left:8px">Probar de nuevo</button></div>' : '') +
+      (C.aviso ? '<div class="mensaje" role="status" aria-live="polite">' + esc(C.aviso) + '</div>' : '') +
       (C.otraVersion().length ? '<div class="mensaje">⚠ No todos tienen la misma versión del juego (vos tenés la <b>' + esc(R.versionCorta()) + '</b>). ' +
         'Pueden correr igual, pero para que todo coincida salgan de la sala, recarguen la página y vuelvan a entrar.</div>' : '') +
       (C.yaLargaron ? '<div class="mensaje">La carrera ya empezó: quedate acá y corrés en la próxima.</div>' : '') +
       cabezal +
       '<div class="tarjetas" style="margin-top:16px">' + fichas + '</div>' +
       '<h3>Tu personaje <span class="suave" style="font-size:13px;text-transform:none;letter-spacing:0">(tu nombre no cambia)</span></h3>' +
-      '<div class="personajes-sala">' + selectorPersonajes + '</div>' +
+      '<div class="personajes-sala" role="group" aria-label="Elegir tu personaje">' + selectorPersonajes + '</div>' +
       '<h3>Nivel' + (C.esAnfitrion ? '' : ' (lo elige quien creó la sala)') + '</h3>' +
-      '<div class="opciones">' + niveles + '</div>' +
+      '<div class="mundos-sala">' + niveles + '</div>' +
       '<div class="pie">' + latencia + botonPrincipal + '</div>' +
       '<p class="aviso">' + pieTexto + '</p>' +
       '</div>');
@@ -515,7 +531,7 @@
 
     var filas = C.ranking().map(function (j, i) {
       var r = j.res;
-      var estado = !r ? '<span class="suave">corriendo…</span>'
+      var estado = !r ? '<span class="suave">' + (j.conectado ? 'corriendo…' : 'reconectando…') + '</span>'
         : r.abandono ? 'abandonó'
         : r.llego ? '🏁 llegó'
         : 'no llegó';
@@ -557,7 +573,7 @@
     var enCarrera = UI.pantalla === 'carreraConectando' || UI.pantalla === 'carreraSala' || UI.pantalla === 'resultadosCarrera';
     if (!enCarrera) return;
     // Si el código no existía o la red falló al entrar, volvemos a pedirlo
-    if (C.error && !C.conectada() && !C.esAnfitrion) {
+    if (C.error && !C.conectada() && !C.esAnfitrion && !C._puedeReconectar) {
       var msg = C.error; C.error = '';
       return UI.carreraUnirse(msg);
     }

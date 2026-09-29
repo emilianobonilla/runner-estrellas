@@ -8,6 +8,8 @@
   var ESPERA = 30000;                  // ms máximos para abrir la sala o encontrar al anfitrión
   var PING = 2000;                     // ms entre mediciones de latencia
   var SILENCIO = 12000;                // ms sin recibir nada = damos la conexión por perdida
+  var ESPERA_TURN = 8000;              // no demoramos la sala indefinidamente si falla el proveedor TURN
+  var cacheIce = null, cacheIceHasta = 0;
 
   var MENSAJES = {
     'browser-incompatible': 'Este navegador no puede conectarse con otros dispositivos. Probá con Chrome, Edge o Firefox.',
@@ -26,6 +28,53 @@
 
   function codigoAlAzar() {
     return String(Math.floor(Math.random() * 10000) + 10000).slice(1);   // siempre 4 dígitos
+  }
+
+  function urlsDe(s) { return typeof s.urls === 'string' ? [s.urls] : (s.urls || []); }
+  function servidorValido(s) {
+    return s && urlsDe(s).some(function (url) { return /^(stun|turn|turns):/i.test(String(url)); });
+  }
+  function tieneTurn(lista) {
+    return (lista || []).some(function (s) {
+      return urlsDe(s).some(function (url) { return /^turns?:/i.test(String(url)); });
+    });
+  }
+  function copiarServidores(lista) {
+    return (lista || []).filter(servidorValido).map(function (s) {
+      var copia = { urls: s.urls };
+      if (s.username != null) copia.username = String(s.username);
+      if (s.credential != null) copia.credential = String(s.credential);
+      if (s.credentialType != null) copia.credentialType = String(s.credentialType);
+      return copia;
+    });
+  }
+
+  /* Las credenciales TURN tienen que ser temporales y venir de un servidor:
+     una contraseña escrita en el JavaScript quedaría visible para cualquiera.
+     Si el endpoint no responde, conservamos STUN para no romper las redes que
+     sí permiten la conexión directa. */
+  function obtenerServidores(cb) {
+    var cfg = R.RED_CONFIG || {};
+    var base = copiarServidores(cfg.iceServers);
+    var url = String(cfg.turnCredentialsUrl || '').trim();
+    if (!url || !window.fetch) return cb(base);
+    if (cacheIce && Date.now() < cacheIceHasta) return cb(cacheIce.slice());
+
+    var terminado = false;
+    var reloj = setTimeout(function () { if (!terminado) { terminado = true; cb(base); } }, ESPERA_TURN);
+    window.fetch(url, { cache: 'no-store', credentials: 'omit' })
+      .then(function (r) { if (!r.ok) throw new Error('TURN ' + r.status); return r.json(); })
+      .then(function (d) {
+        if (terminado) return;
+        terminado = true; clearTimeout(reloj);
+        var recibidos = Array.isArray(d) ? d : (d.iceServers || d.ice_servers || [d]);
+        var extra = copiarServidores(recibidos);
+        cacheIce = base.concat(extra);
+        var ttl = Math.max(60, Math.min(86400, Number(d.ttl) || 3600));
+        cacheIceHasta = Date.now() + (ttl - 30) * 1000;
+        cb(cacheIce.slice());
+      })
+      .catch(function () { if (!terminado) { terminado = true; clearTimeout(reloj); cb(base); } });
   }
 
   /* Deja solo dígitos: así "12 34" o "1.234" también sirven. */
@@ -51,9 +100,21 @@
     this._reloj = null;
     this._latido = null;
     this._cerradaPorMi = false;
+    this.turnDisponible = false;
   }
 
   Red.prototype.soportado = function () { return typeof window.Peer === 'function'; };
+  Red.prototype.tieneTurn = function () { return this.turnDisponible; };
+
+  Red.prototype._preparar = function (seguir) {
+    var self = this;
+    this._ir('preparando');
+    obtenerServidores(function (iceServers) {
+      if (self._cerradaPorMi) return;
+      self.turnDisponible = tieneTurn(iceServers);
+      seguir({ debug: 0, config: { iceServers: iceServers, iceCandidatePoolSize: 4 } });
+    });
+  };
 
   Red.prototype._ir = function (estado, error) {
     if (this._cerradaPorMi) return;   // el jugador ya salió: no avisamos más cambios
@@ -83,15 +144,16 @@
     if (!this.soportado()) return this._fallar('browser-incompatible');
     this.esAnfitrion = true;
     this._intentos = 0;
-    this._abrirSala();
+    var self = this;
+    this._preparar(function (opciones) { self._abrirSala(opciones); });
   };
 
-  Red.prototype._abrirSala = function () {
+  Red.prototype._abrirSala = function (opciones) {
     var self = this;
     this.codigo = codigoAlAzar();
     this._ir('abriendo');
 
-    var peer = this.peer = new window.Peer(PREFIJO + this.codigo, { debug: 0 });
+    var peer = this.peer = new window.Peer(PREFIJO + this.codigo, opciones);
     this._reloj = setTimeout(function () { self._fallar('timeout'); }, ESPERA);
 
     peer.on('open', function () {
@@ -117,7 +179,7 @@
         self._intentos++;
         self._limpiarRelojes();
         self._destruirPeer();
-        return self._abrirSala();
+        return self._abrirSala(opciones);
       }
       self._fallar(err && err.type);
     });
@@ -131,9 +193,14 @@
     var self = this;
     this.esAnfitrion = false;
     this.codigo = R.normalizarCodigo(codigo);
+    this._preparar(function (opciones) { self._unirsePreparado(opciones); });
+  };
+
+  Red.prototype._unirsePreparado = function (opciones) {
+    var self = this;
     this._ir('conectando');
 
-    var peer = this.peer = new window.Peer(null, { debug: 0 });
+    var peer = this.peer = new window.Peer(null, opciones);
     this._reloj = setTimeout(function () { self._fallar('timeout'); }, ESPERA);
 
     peer.on('open', function () {

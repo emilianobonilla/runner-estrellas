@@ -47,6 +47,7 @@ css/style.css         Estilos de menús y HUD
 data/themes.js        Estéticas (colores del escenario, imágenes opcionales)
 data/worlds.js        Mundos: grupos de niveles que comparten estética, enemigo y dificultad
 data/enemies.js       Tipos de enemigos (uno por mundo: cómo se mueven y cuánto valen)
+data/network.js       Servidores STUN y endpoint de credenciales TURN temporales
 data/characters.js    Personajes (colores, accesorio, sprite opcional)
 data/levels/*.js      Niveles (mapas de caracteres), agrupados por mundo
 assets/img/           Íconos de la app e imágenes propias opcionales (fondos, sprites, tiles)
@@ -60,6 +61,24 @@ js/ui/screens.js      Pantallas: menú, niveles, personalizar, ranking, competen
 js/main.js            Arranque y bucle del juego
 herramientas/         Scripts de apoyo (probar niveles, escribir la versión)
 ```
+
+## Red multijugador y TURN
+
+La carrera intenta primero una conexión WebRTC directa usando los servidores
+STUN definidos en `data/network.js`. Si una red móvil, escolar o corporativa
+bloquea esa conexión, WebRTC necesita un relay TURN.
+
+Para habilitarlo, configurá `turnCredentialsUrl` con un endpoint HTTPS que
+entregue credenciales temporales y permita CORS desde la página del juego. El
+endpoint puede responder con `{ iceServers: [...], ttl: 3600 }`, con
+`{ ice_servers: [...] }`, o con un único objeto `{ urls, username, credential }`.
+No guardes una contraseña TURN permanente en el repositorio: todo JavaScript
+publicado con GitHub Pages es visible para cualquiera.
+
+Si una conexión ya establecida se corta, el invitado intenta volver a entrar
+automáticamente cinco veces. El anfitrión conserva durante un minuto su número,
+nombre, personaje y resultado; durante una carrera puede seguir jugando y se
+sincroniza de nuevo cuando vuelve la señal.
 
 ## Mundos (grupos de niveles)
 

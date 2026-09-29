@@ -11,7 +11,7 @@
      · y arma la tabla de puestos del final.
 
    Mensajes que un invitado le manda al anfitrión:
-     hola     {nombre, personaje}     presentación al conectarse
+     hola     {nombre, personaje,sesion} presentación al conectarse o reconectarse
      personaje {personaje}            cambié mi personaje en la sala
      listo    {listo}                 estoy pronto (o me arrepentí)
      pos      {x,y,vx,m,s,mu,pr,t}    dónde voy, 15 veces por segundo
@@ -44,6 +44,8 @@
      NO vuelven: al que lo pisó le queda el camino limpio. */
   var VUELVE_ESTRELLA = 3;
   var VISTA = R.ANCHO * 1.5;   // los enemigos se sincronizan solo si hay alguien cerca
+  var RESERVA_RECONEXION = 60000; // el anfitrión guarda el lugar un minuto
+  var ESPERAS_RECONEXION = [1000, 2000, 4000, 7000, 10000];
 
   R.MAX_CORREDORES = MAX;
 
@@ -60,6 +62,7 @@
     max: MAX,
     error: '',
     aviso: '',
+    reconectando: false,
     jugadores: [],        // [{ jid, peer, nombre, personajeId, listo, conectado, res }]
     nivelId: null,
     yaLargaron: false,    // la carrera ya empezó (para el que entra tarde)
@@ -71,7 +74,12 @@
     _acumEne: 0,
     _pos: {},             // anfitrión: última posición conocida de cada corredor
     _tomadas: {},         // anfitrión: de quién es cada estrella/enemigo
-    _vuelven: []          // estrellas esperando para volver a aparecer: [{i, t}]
+    _vuelven: [],         // estrellas esperando para volver a aparecer: [{i, t}]
+    _sesion: '',          // identifica al mismo dispositivo aunque PeerJS le cambie el peer id
+    _puedeReconectar: false,
+    _reconexionIntento: 0,
+    _reconexionTimer: null,
+    _salidaVoluntaria: false
   };
 
   function avisarCambio() { if (C.onCambio) C.onCambio(); }
@@ -85,6 +93,10 @@
   }
   function miNombre() { return (perfil().nombre || '').trim() || 'Anónimo'; }
   function miPersonaje() { return (R.app.personajeActual() || {}).id; }
+  function nuevaSesion() {
+    if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+    return R.uid() + '-' + R.uid();
+  }
 
   C.activa = function () { return C.estado !== 'inactiva'; };
   C.corriendo = function () { return C.estado === 'corriendo'; };
@@ -93,8 +105,8 @@
   C.nivel = function () { return nivelPorId(C.nivelId) || R.niveles[0]; };
 
   /* ---------- la lista de corredores ---------- */
-  function nuevoJugador(jid, peer, nombre, personajeId, version) {
-    return { jid: jid, peer: peer || null, nombre: nombre, personajeId: personajeId, version: version || '', listo: false, conectado: true, res: null };
+  function nuevoJugador(jid, peer, nombre, personajeId, version, sesion) {
+    return { jid: jid, peer: peer || null, nombre: nombre, personajeId: personajeId, version: version || '', sesion: sesion || '', listo: false, conectado: true, res: null, _reconexionTimer: null };
   }
 
   C.jugador = function (jid) { return C.jugadores.filter(function (j) { return j.jid === jid; })[0] || null; };
@@ -127,8 +139,24 @@
   }
 
   function quitarJugador(jid) {
-    C.jugadores = C.jugadores.filter(function (j) { return j.jid !== jid; });
+    var j = C.jugador(jid);
+    if (j && j._reconexionTimer) clearTimeout(j._reconexionTimer);
+    C.jugadores = C.jugadores.filter(function (p) { return p.jid !== jid; });
     delete C._pos[jid];
+  }
+
+  function prepararRed() {
+    var red = C.red = new R.Red(MAX);
+    red.onEstado = alCambiarRed;
+    red.onMensaje = alRecibir;
+    red.onSale = alSalir;
+    return red;
+  }
+
+  function cancelarReconexion() {
+    if (C._reconexionTimer) clearTimeout(C._reconexionTimer);
+    C._reconexionTimer = null;
+    C.reconectando = false;
   }
 
   /* ---------- abrir y cerrar ---------- */
@@ -139,65 +167,112 @@
     C.miId = anfitrion ? 0 : -1;
     C.max = MAX;
     C.yaLargaron = false;
-    C.jugadores = anfitrion ? [nuevoJugador(0, null, miNombre(), miPersonaje(), R.VERSION.numero)] : [];
+    C._sesion = nuevaSesion();
+    C._puedeReconectar = false;
+    C._reconexionIntento = 0;
+    C._salidaVoluntaria = false;
+    cancelarReconexion();
+    C.jugadores = anfitrion ? [nuevoJugador(0, null, miNombre(), miPersonaje(), R.VERSION.numero, C._sesion)] : [];
     C._partida = null; C._pos = {}; C._tomadas = {}; C._vuelven = [];
     C.nivelId = C.nivelId || (R.niveles[0] && R.niveles[0].id);
-    C.red = new R.Red(MAX);
-    C.red.onEstado = alCambiarRed;
-    C.red.onMensaje = alRecibir;
-    C.red.onSale = alSalir;
+    prepararRed();
   }
 
   C.crearSala = function () { arrancarRed(true); C.red.crearSala(); avisarCambio(); };
   C.unirse = function (codigo) { arrancarRed(false); C.red.unirse(codigo); avisarCambio(); };
 
   C.salir = function () {
-    if (C.red) { if (C.red.conectada()) C.red.enviar('chau', {}); C.red.cerrar(); }
+    C._salidaVoluntaria = true;
+    cancelarReconexion();
+    C.jugadores.forEach(function (j) { if (j._reconexionTimer) clearTimeout(j._reconexionTimer); });
+    if (C.red) {
+      if (C.red.conectada()) C.red.enviar(C.esAnfitrion ? 'salaCerrada' : 'chau', {});
+      C.red.cerrar();
+    }
     C.red = null;
     C.estado = 'inactiva';
     C.jugadores = []; C._partida = null; C._pos = {}; C._tomadas = {}; C._vuelven = [];
-    C.error = ''; C.aviso = '';
+    C.error = ''; C.aviso = ''; C._puedeReconectar = false;
   };
+
+  function programarReconexion() {
+    if (C.esAnfitrion || C._salidaVoluntaria || !C._puedeReconectar || C.estado === 'inactiva' || C._reconexionTimer) return;
+    if (C._reconexionIntento >= ESPERAS_RECONEXION.length) {
+      C.reconectando = false;
+      C.error = 'No pudimos recuperar la conexión con la sala. Podés probar de nuevo manualmente.';
+      avisarCambio();
+      return;
+    }
+    var espera = ESPERAS_RECONEXION[C._reconexionIntento];
+    C.reconectando = true;
+    C.aviso = 'Reconectando automáticamente… intento ' + (C._reconexionIntento + 1) + ' de ' + ESPERAS_RECONEXION.length + '.';
+    C._reconexionTimer = setTimeout(function () {
+      C._reconexionTimer = null;
+      C._reconexionIntento++;
+      var codigo = C.codigo;
+      if (C.red) C.red.cerrar();
+      prepararRed().unirse(codigo);
+      avisarCambio();
+    }, espera);
+    avisarCambio();
+  }
 
   function alCambiarRed(estado, error) {
     C.codigo = C.red ? C.red.codigo : '';
     if (estado === 'error') {
+      if (!C.esAnfitrion && C._puedeReconectar) {
+        C.reconectando = true;
+        C.aviso = 'La red falló; intentaremos recuperar la sala.';
+        return programarReconexion();
+      }
       C.error = error;
       if (C.estado !== 'corriendo' && C.estado !== 'fin') C.estado = 'sala';
 
     } else if (estado === 'conectado') {          // invitado: ya hay canal con el anfitrión
       C.error = '';
+      cancelarReconexion();
       if (C.estado === 'conectando') C.estado = 'sala';
-      C.red.enviar('hola', { nombre: miNombre(), personaje: miPersonaje(), version: R.VERSION.numero });
+      C.red.enviar('hola', { nombre: miNombre(), personaje: miPersonaje(), version: R.VERSION.numero, sesion: C._sesion });
 
     } else if (estado === 'abierta') {            // anfitrión: la sala quedó abierta
       C.error = '';
       if (C.estado === 'conectando') C.estado = 'sala';
 
     } else if (estado === 'cerrado') {            // invitado: se cayó el anfitrión
-      C.aviso = 'Se cortó la conexión con la sala.';
+      C.aviso = 'Se cortó la conexión con la sala. Intentaremos recuperarla.';
       C.otros().forEach(function (j) { j.conectado = false; j.listo = false; });
       quietosTodos();
-      if (C.estado === 'corriendo' && C._partida) C._partida.avisar('Se cortó la conexión: seguí solo', 2.5);
+      if (C.estado === 'corriendo' && C._partida) C._partida.avisar('Reconectando… seguí corriendo', 2.5);
       else if (C.estado !== 'fin') C.estado = 'sala';
+      programarReconexion();
 
-    } else if (estado === 'abriendo' || estado === 'conectando') {
-      C.estado = 'conectando';
+    } else if (estado === 'preparando' || estado === 'abriendo' || estado === 'conectando') {
+      if (!C.reconectando && C.estado !== 'corriendo' && C.estado !== 'fin') C.estado = 'conectando';
     }
     avisarCambio();
   }
 
   /* Alguien se fue (lo avisa la red, en el anfitrión). */
-  function alSalir(peer) {
+  function alSalir(peer, definitivo) {
     var j = C.porPeer(peer);
     if (!j) return;
     j.conectado = false; j.listo = false; j.peer = null;
-    C.aviso = j.nombre + ' se desconectó.';
-    if (C.estado === 'corriendo' || C.estado === 'fin') {
-      if (!j.res) j.res = { llego: false, abandono: true, tiempo: 0, puntos: 0, estrellas: 0 };
-      pararRival(j.jid);
+    C.aviso = j.nombre + (definitivo ? ' salió de la sala.' : ' perdió la conexión; guardamos su lugar por un minuto.');
+    pararRival(j.jid);
+    if (definitivo) {
+      if ((C.estado === 'corriendo' || C.estado === 'fin') && !j.res) j.res = { llego: false, abandono: true, tiempo: 0, puntos: 0, estrellas: 0 };
+      else if (C.estado !== 'corriendo' && C.estado !== 'fin') quitarJugador(j.jid);
     } else {
-      quitarJugador(j.jid);
+      if (j._reconexionTimer) clearTimeout(j._reconexionTimer);
+      j._reconexionTimer = setTimeout(function () {
+        var reservado = C.jugadores.filter(function (p) { return p.sesion === j.sesion; })[0];
+        if (!reservado || reservado.conectado) return;
+        if (C.estado === 'corriendo' || C.estado === 'fin') {
+          if (!reservado.res) reservado.res = { llego: false, abandono: true, tiempo: 0, puntos: 0, estrellas: 0 };
+        } else quitarJugador(reservado.jid);
+        C.aviso = reservado.nombre + ' no pudo reconectarse.';
+        difundirSala(); avisarCambio();
+      }, RESERVA_RECONEXION);
     }
     difundirSala();
     avisarCambio();
@@ -213,9 +288,22 @@
     var j = C.porPeer(peer);
 
     if (tipo === 'hola') {
+      var sesion = String(d.sesion || '').slice(0, 64);
+      if (!j && sesion) j = C.jugadores.filter(function (p) { return p.sesion === sesion && !p.conectado; })[0] || null;
+      if (j) {
+        if (j._reconexionTimer) clearTimeout(j._reconexionTimer);
+        j._reconexionTimer = null;
+        j.peer = peer; j.conectado = true; j.listo = false;
+        j.version = String(d.version || j.version || '').slice(0, 12);
+        if (personajeValido(d.personaje)) j.personajeId = d.personaje;
+        C.aviso = j.nombre + ' se reconectó.';
+      } else if (C.jugadores.length >= MAX) {
+        C.red.enviarA(peer, 'rechazada', { mensaje: 'La sala está completa; hay lugares reservados para jugadores que se están reconectando.' });
+        return;
+      }
       if (!j) {
         j = nuevoJugador(proximoJid(), peer, String(d.nombre || 'Corredor').slice(0, 20), d.personaje,
-          String(d.version || '').slice(0, 12));   // las versiones viejas no lo mandan
+          String(d.version || '').slice(0, 12), sesion);   // las versiones viejas no lo mandan
         C.jugadores.push(j);
         C.aviso = j.nombre + ' entró a la sala.';
       }
@@ -252,7 +340,7 @@
       return;
 
     } else if (tipo === 'chau') {
-      alSalir(peer);
+      alSalir(peer, true);
       return;
     }
     avisarCambio();
@@ -262,6 +350,21 @@
     if (tipo === 'bienvenida') {
       C.miId = d.jid | 0;
       C.max = d.max || MAX;
+      C._puedeReconectar = true;
+      C.aviso = C._reconexionIntento ? 'Conexión recuperada.' : '';
+      C._reconexionIntento = 0;
+
+    } else if (tipo === 'rechazada') {
+      C._salidaVoluntaria = true;
+      cancelarReconexion();
+      C.error = String(d.mensaje || 'No se pudo volver a entrar a la sala.');
+      if (C.red) C.red.cerrar();
+
+    } else if (tipo === 'salaCerrada') {
+      C._salidaVoluntaria = true;
+      cancelarReconexion();
+      C.aviso = 'El anfitrión cerró la sala.';
+      if (C.red) C.red.cerrar();
 
     } else if (tipo === 'sala') {
       aplicarSala(d);
