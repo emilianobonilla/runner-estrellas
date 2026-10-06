@@ -71,6 +71,7 @@ RUNNER.registrarTema({
   enemigoOjos: '#e8ff5a',
   ambiente: 'cueva',   // estalactitas, cristales y roca con vetas (ver render.js)
   cristal: '#7cf0ff',
+  decoracion: 'cueva',   // activa estalactitas, cristales, hongos brillantes y luciérnagas
   imagenes: {}
 });
 

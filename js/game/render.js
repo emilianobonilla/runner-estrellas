@@ -257,6 +257,64 @@
       if (tema.decoracion === 'prado') self.arbolesLejanos(altura, par, i, color);
     });
     if (tema.ambiente === 'cueva') this.techoCueva(tema, cam);
+    if (tema.decoracion === 'cueva') this.ambienteCueva(tema, cam);
+  };
+
+  /* Ambiente de cueva (temas con decoracion 'cueva'): cristales brillantes sobre las
+     colinas lejanas y luciérnagas flotando (las estalactitas las dibuja techoCueva). */
+  Renderer.prototype.ambienteCueva = function (tema, cam) {
+    var ctx = this.ctx, t = this.t;
+    var colores = ['#7a6cff', '#46d4ff', '#d77aff'];
+    (tema.colinas || []).forEach(function (color, i) {
+      var par = cam * (0.35 + i * 0.25), paso = i === 0 ? 170 : 120;
+      var base = R.ALTO - T - (i === 0 ? 40 : 10);
+      var primero = Math.floor(par / paso) - 1;
+      for (var k = primero; k <= primero + R.ANCHO / paso + 2; k++) {
+        var h = hash(k, 53 + i);
+        if (h < 0.4) continue;
+        var wx = k * paso + h * 70, x = wx - par;
+        var y = base - Math.abs(Math.sin(wx * 0.0038 + i * 1.3)) * (110 - i * 40) - Math.sin(wx * 0.013 + i) * 12;
+        var esc = (i === 0 ? 1 : 0.65) * (0.8 + h * 0.5), col = colores[Math.floor(h * 10) % 3];
+        var halo = ctx.createRadialGradient(x, y - 14 * esc, 2, x, y - 14 * esc, 46 * esc);
+        halo.addColorStop(0, 'rgba(140,200,255,0.30)'); halo.addColorStop(1, 'rgba(140,200,255,0)');
+        ctx.fillStyle = halo; ctx.fillRect(x - 46 * esc, y - 60 * esc, 92 * esc, 92 * esc);
+        ctx.globalAlpha = i === 0 ? 0.85 : 0.6;
+        [[-9, 22, 6], [0, 34, 8], [10, 18, 5]].forEach(function (c) {
+          ctx.fillStyle = col;
+          ctx.beginPath(); ctx.moveTo(x + (c[0] - c[2]) * esc, y + 2); ctx.lineTo(x + c[0] * esc, y - c[1] * esc); ctx.lineTo(x + (c[0] + c[2]) * esc, y + 2); ctx.closePath(); ctx.fill();
+          ctx.fillStyle = 'rgba(255,255,255,0.35)';
+          ctx.beginPath(); ctx.moveTo(x + c[0] * esc, y - c[1] * esc); ctx.lineTo(x + (c[0] + c[2]) * esc, y + 2); ctx.lineTo(x + c[0] * esc, y + 2); ctx.closePath(); ctx.fill();
+        });
+        ctx.globalAlpha = 1;
+      }
+    });
+    for (var j = 0; j < 16; j++) {      // luciérnagas: titilan y se mueven despacio
+      var fx = ((j * 211 + 40 - cam * 0.6 + Math.sin(t * 0.6 + j) * 22) % (R.ANCHO + 60) + R.ANCHO + 60) % (R.ANCHO + 60) - 30;
+      var fy = 90 + (j * 53) % 270 + Math.sin(t * 0.9 + j * 2) * 12;
+      var br = 0.35 + 0.65 * Math.abs(Math.sin(t * 1.6 + j * 1.7));
+      ctx.fillStyle = 'rgba(200,255,120,' + (0.18 * br) + ')'; ctx.beginPath(); ctx.arc(fx, fy, 7, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(230,255,160,' + br + ')'; ctx.beginPath(); ctx.arc(fx, fy, 2, 0, Math.PI * 2); ctx.fill();
+    }
+  };
+
+  Renderer.prototype.cristal = function (x, y, color) {
+    var ctx = this.ctx, pulso = 0.25 + 0.15 * Math.sin(this.t * 2 + x * 0.05);
+    ctx.fillStyle = 'rgba(160,220,255,' + pulso + ')'; ctx.beginPath(); ctx.arc(x, y - 8, 15, 0, Math.PI * 2); ctx.fill();
+    [[-6, 12, 4], [0, 20, 5], [7, 10, 4]].forEach(function (c) {
+      ctx.fillStyle = color;
+      ctx.beginPath(); ctx.moveTo(x + c[0] - c[2], y + 1); ctx.lineTo(x + c[0], y - c[1]); ctx.lineTo(x + c[0] + c[2], y + 1); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.beginPath(); ctx.moveTo(x + c[0], y - c[1]); ctx.lineTo(x + c[0] + c[2], y + 1); ctx.lineTo(x + c[0], y + 1); ctx.closePath(); ctx.fill();
+    });
+  };
+
+  Renderer.prototype.hongo = function (x, y) {
+    var ctx = this.ctx;
+    ctx.fillStyle = '#d9d4f2'; ctx.fillRect(x - 2, y - 8, 4, 9);
+    ctx.fillStyle = 'rgba(120,255,220,0.25)'; ctx.beginPath(); ctx.arc(x, y - 10, 14, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#5ee6c8'; ctx.beginPath(); ctx.arc(x, y - 8, 9, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.beginPath(); ctx.arc(x - 3, y - 12, 1.8, 0, Math.PI * 2); ctx.arc(x + 3, y - 11, 1.4, 0, Math.PI * 2); ctx.fill();
   };
 
   // Cueva: polvillo brillante al fondo (se dibuja antes de las colinas)
@@ -404,6 +462,12 @@
         var h = hash(cx, 77);
         if (h < 0.22) this.flor(x + 8 + hash(cx, 78) * 30, y, h < 0.08 ? '#ff6b9a' : h < 0.15 ? '#ffffff' : '#ffd23f');
         else if (h > 0.93) this.arbusto(x + 24, y);
+      }
+      if (tema.decoracion === 'cueva') {
+        var hc = hash(cx, 77);
+        ctx.fillStyle = 'rgba(120,255,220,0.32)'; ctx.fillRect(x, y + 13, T, 2);      // musgo que brilla en el borde
+        if (hc < 0.28) this.cristal(x + 10 + hash(cx, 78) * 26, y, hc < 0.1 ? '#d77aff' : hc < 0.2 ? '#46d4ff' : '#8f86ff');
+        else if (hc > 0.9) this.hongo(x + 24, y);
       }
     }
   };
