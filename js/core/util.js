@@ -86,7 +86,8 @@ window.RUNNER = window.RUNNER || {};
   R.ordenarNiveles = function () {
     R.niveles.sort(function (a, b) {
       var ma = R.mundoDe(a), mb = R.mundoDe(b);
-      var d = ((ma && ma.orden) || 0) - ((mb && mb.orden) || 0);
+      // los niveles sin mundo van al final, como en el selector ("Otros niveles")
+      var d = (ma ? ma.orden || 0 : 1e6) - (mb ? mb.orden || 0 : 1e6);
       return d !== 0 ? d : (a.orden || 0) - (b.orden || 0);
     });
     R.mundos.sort(function (a, b) { return (a.orden || 0) - (b.orden || 0); });

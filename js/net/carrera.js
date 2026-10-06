@@ -70,6 +70,8 @@
     onArrancar: null,     // main.js arranca la partida
     onVolverASala: null,  // main.js corta la partida en curso (revancha del anfitrión)
     _partida: null,
+    _abandone: false,     // anfitrión: me fui de la pista pero los demás siguen corriendo
+    _avance: null,
     _acum: 0,
     _acumEne: 0,
     _pos: {},             // anfitrión: última posición conocida de cada corredor
@@ -106,7 +108,7 @@
 
   /* ---------- la lista de corredores ---------- */
   function nuevoJugador(jid, peer, nombre, personajeId, version, sesion) {
-    return { jid: jid, peer: peer || null, nombre: nombre, personajeId: personajeId, version: version || '', sesion: sesion || '', listo: false, conectado: true, res: null, _reconexionTimer: null };
+    return { jid: jid, peer: peer || null, nombre: nombre, personajeId: personajeId, version: version || '', sesion: sesion || '', listo: false, conectado: true, res: null, espera: false, _reconexionTimer: null };
   }
 
   C.jugador = function (jid) { return C.jugadores.filter(function (j) { return j.jid === jid; })[0] || null; };
@@ -183,6 +185,7 @@
 
   C.salir = function () {
     C._salidaVoluntaria = true;
+    clearTimeout(C._avance); C._avance = null; C._abandone = false;
     cancelarReconexion();
     C.jugadores.forEach(function (j) { if (j._reconexionTimer) clearTimeout(j._reconexionTimer); });
     if (C.red) {
@@ -271,10 +274,11 @@
           if (!reservado.res) reservado.res = { llego: false, abandono: true, tiempo: 0, puntos: 0, estrellas: 0 };
         } else quitarJugador(reservado.jid);
         C.aviso = reservado.nombre + ' no pudo reconectarse.';
-        difundirSala(); avisarCambio();
+        difundirSala(); avanzarSiAbandone(); avisarCambio();
       }, RESERVA_RECONEXION);
     }
     difundirSala();
+    avanzarSiAbandone();
     avisarCambio();
   }
 
@@ -304,6 +308,7 @@
       if (!j) {
         j = nuevoJugador(proximoJid(), peer, String(d.nombre || 'Corredor').slice(0, 20), d.personaje,
           String(d.version || '').slice(0, 12), sesion);   // las versiones viejas no lo mandan
+        j.espera = C.estado === 'corriendo' || C.estado === 'fin' || C._abandone;   // entró con la carrera en marcha
         C.jugadores.push(j);
         C.aviso = j.nombre + ' entró a la sala.';
       }
@@ -316,7 +321,7 @@
     } else if (tipo === 'listo') {
       j.listo = !!d.listo;
       difundirSala();
-      if (C.todosListos()) return largar();
+      if (C.estado === 'sala' && C.todosListos()) return largar();   // en plena carrera no se larga otra
 
     } else if (tipo === 'personaje') {
       if (C.estado !== 'sala' || C.yaLargaron || !personajeValido(d.personaje)) return;
@@ -336,6 +341,8 @@
       anotarResultado(j, d);
 
     } else if (tipo === 'revancha') {
+      // Un invitado que ya terminó no corta la carrera de los que siguen
+      if (C.estado === 'corriendo' || C.faltanLlegar() > 0) return;
       volverTodosALaSala();
       return;
 
@@ -409,7 +416,7 @@
       jugadores: C.jugadores.map(function (j) {
         return {
           jid: j.jid, nombre: j.nombre, personaje: j.personajeId, version: j.version,
-          listo: !!j.listo, conectado: !!j.conectado, res: j.res || null
+          listo: !!j.listo, conectado: !!j.conectado, res: j.res || null, espera: !!j.espera
         };
       })
     });
@@ -421,7 +428,7 @@
     C.jugadores = (d.jugadores || []).map(function (p) {
       return {
         jid: p.jid | 0, peer: null, nombre: String(p.nombre || 'Corredor').slice(0, 20),
-        personajeId: p.personaje, version: String(p.version || '').slice(0, 12), listo: !!p.listo, conectado: !!p.conectado, res: p.res || null
+        personajeId: p.personaje, version: String(p.version || '').slice(0, 12), listo: !!p.listo, conectado: !!p.conectado, res: p.res || null, espera: !!p.espera
       };
     });
     // Si alguien se desconectó mientras corremos, su fantasma se queda quieto
@@ -459,7 +466,7 @@
     yo.listo = !yo.listo;
     if (C.esAnfitrion) {
       difundirSala();
-      if (C.todosListos()) return largar();
+      if (C.estado === 'sala' && C.todosListos()) return largar();
     } else {
       C.red.enviar('listo', { listo: yo.listo });
     }
@@ -476,7 +483,7 @@
      pasar por la sala (la lista nueva con el nivel viaja antes del "arrancar"). */
   C.seguir = function () {
     var sig = C.siguiente();
-    if (!C.esAnfitrion || !sig || C.estado !== 'fin' || !C.conectada() || C.faltanLlegar() > 0) return false;
+    if (!C.esAnfitrion || !sig || (C.estado !== 'fin' && !C._abandone) || !C.conectada() || C.faltanLlegar() > 0) return false;
     C.nivelId = sig.id;
     C.jugadores.forEach(function (j) { j.res = null; j.listo = false; });
     difundirSala();
@@ -492,10 +499,11 @@
 
   function comenzar(cuenta) {
     C.estado = 'corriendo';
+    C._abandone = false;
     C.yaLargaron = true;
     C._acum = 0; C._acumEne = 0;
     C._pos = {}; C._tomadas = {}; C._vuelven = [];
-    C.jugadores.forEach(function (j) { j.res = null; j.listo = false; });
+    C.jugadores.forEach(function (j) { j.res = null; j.listo = false; j.espera = false; });
     if (C.esAnfitrion) difundirSala();
     if (C.onArrancar) C.onArrancar(C.nivel(), cuenta);
     avisarCambio();
@@ -564,8 +572,15 @@
      partida: el anfitrión tiene que seguir devolviendo las estrellas aunque él
      ya haya terminado su carrera y los demás sigan corriendo. */
   C.tick = function (p, dt) {
-    if (C.estado !== 'corriendo' && C.estado !== 'fin') return;
+    var anfitrionFuera = C.esAnfitrion && (C.estado === 'fin' || C._abandone);   // terminé o abandoné, pero otros siguen
+    if (C.estado !== 'corriendo' && C.estado !== 'fin' && !anfitrionFuera) return;
     devolverEstrellas(dt);
+    if (anfitrionFuera && C.conectada() && C.faltanLlegar() > 0) {
+      // Ya terminé pero otros siguen: sigo de relé para que se vean entre ellos
+      C._acum += dt;
+      if (C._acum >= 1 / HZ) { C._acum = 0; C.red.enviar('poss', { j: listaPosiciones() }); }
+      return;
+    }
     if (!p || C.estado !== 'corriendo' || !C.conectada()) return;
     var j = p.jugador;
 
@@ -707,7 +722,19 @@
       cantarLlegada(j.jid, puesto);
     }
     difundirSala();
+    avanzarSiAbandone();
     avisarCambio();
+  }
+
+  /* Si el anfitrión abandonó la pista, la pantalla de resultados no está para
+     avanzar: cuando el último termina, él lleva a todos al nivel siguiente (o a la sala). */
+  function avanzarSiAbandone() {
+    if (!C.esAnfitrion || !C._abandone || C._avance || C.faltanLlegar() > 0) return;
+    C._avance = setTimeout(function () {
+      C._avance = null;
+      if (!C._abandone || C.faltanLlegar() > 0) return;
+      if (!C.seguir()) C.pedirRevancha();
+    }, 5000);
   }
 
   function puestoDe(jid) {
@@ -736,7 +763,7 @@
   /* Tabla de puestos: primero los que llegaron (por tiempo), después los que
      terminaron sin llegar (por puntos) y al final los que siguen corriendo. */
   C.ranking = function () {
-    return C.jugadores.slice().sort(function (a, b) {
+    return C.jugadores.filter(function (j) { return !j.espera; }).sort(function (a, b) {
       var ga = a.res ? (a.res.llego ? 0 : 1) : 2;
       var gb = b.res ? (b.res.llego ? 0 : 1) : 2;
       if (ga !== gb) return ga - gb;
@@ -754,10 +781,12 @@
 
   /* Corredores que todavía están en la pista (los esperamos para cerrar la tabla). */
   C.faltanLlegar = function () {
-    return C.jugadores.filter(function (j) { return j.conectado && !j.res; }).length;
+    // Cuenta también a los que perdieron la conexión: tienen el lugar guardado un minuto
+    return C.jugadores.filter(function (j) { return !j.espera && !j.res; }).length;
   };
 
   C.abandonar = function () {
+    C._abandone = C.esAnfitrion;   // antes de anotar el resultado: ahí se decide si avanzar
     registrarMiResultado({ llego: false, abandono: true, tiempo: 0, puntos: 0, estrellas: 0 });
     C.estado = 'sala';
     var yo = C.jugador(C.miId);
@@ -779,7 +808,7 @@
 
   function volverTodosALaSala() {
     if (!C.esAnfitrion) return;
-    C.jugadores.forEach(function (j) { j.res = null; j.listo = false; });
+    C.jugadores.forEach(function (j) { j.res = null; j.listo = false; j.espera = false; });
     C.red.enviar('revancha', {});
     volverASalaLocal();
     difundirSala();
@@ -788,6 +817,7 @@
   function volverASalaLocal() {
     var corria = C.estado === 'corriendo';
     C.estado = 'sala';
+    C._abandone = false;
     C.yaLargaron = false;
     C._partida = null;
     var yo = C.jugador(C.miId);

@@ -653,7 +653,7 @@
       if (R.Carrera.activa()) return UI.carreraSala();
       UI.carrera();
     },
-    carreraCrear: function () { R.Carrera.crearSala(); UI.carreraConectando(); },
+    carreraCrear: function () { R.Carrera.crearSala(); UI.carreraSala(); },   // si falló al instante, muestra el error
     carreraUnirse: function () { UI.carreraUnirse(); },
     carreraConectar: function () {
       var campo = document.getElementById('carrera-codigo');
@@ -669,7 +669,7 @@
     carreraReintentar: function () {
       var C = R.Carrera, anfitrion = C.esAnfitrion, cod = C.codigo;
       C.salir();
-      if (anfitrion) { C.crearSala(); UI.carreraConectando(); }
+      if (anfitrion) { C.crearSala(); UI.carreraSala(); }
       else if (cod) { C.unirse(cod); UI.carreraConectando(); }
       else UI.carreraUnirse();
     },
