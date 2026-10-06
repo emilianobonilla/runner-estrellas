@@ -53,15 +53,15 @@ RUNNER.registrarTema({
   cielo: ['#0c1022', '#2a2c55'],
   sol: null,
   nubes: null,
-  colinas: ['#2f3450', '#22263d'],
+  colinas: ['#262a42', '#1b1e32'],
   sueloTop: '#6e6a8a',
   sueloRelleno: '#3e3a55',
   sueloDetalle: '#2c2940',
   bloque: '#6a5b8a',
   bloqueLuz: '#9a88c2',
   bloqueSombra: '#3e3455',
-  pincho: '#c8d2ff',
-  pinchoBorde: '#5f6aa8',
+  pincho: '#ff6a4d',        // cálido y saturado: la cueva es toda fría, así los pinchos se ven al instante
+  pinchoBorde: '#7a1f12',
   estrella: '#8cf5ff',
   estrellaBorde: '#3ab0c9',
   bandera: '#ff7ab6',
@@ -71,7 +71,7 @@ RUNNER.registrarTema({
   enemigoOjos: '#e8ff5a',
   ambiente: 'cueva',   // estalactitas, cristales y roca con vetas (ver render.js)
   cristal: '#7cf0ff',
-  decoracion: 'cueva',   // activa estalactitas, cristales, hongos brillantes y luciérnagas
+  decoracion: 'cueva',   // activa estalactitas, hongos y piedritas redondas (nada triangular: eso es solo de los pinchos) y luciérnagas
   imagenes: {}
 });
 
