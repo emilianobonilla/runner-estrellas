@@ -221,22 +221,12 @@
       var halo = ctx.createRadialGradient(sx, sy, 20, sx, sy, 190);
       halo.addColorStop(0, 'rgba(255,248,200,0.75)'); halo.addColorStop(1, 'rgba(255,248,200,0)');
       ctx.fillStyle = halo; ctx.fillRect(sx - 190, sy - 190, 380, 380);
-      if (tema.decoracion) {
-        ctx.save(); ctx.translate(sx, sy); ctx.rotate(this.t * 0.05);
-        ctx.fillStyle = 'rgba(255,255,255,0.09)';
-        for (var r = 0; r < 12; r++) {
-          ctx.rotate(Math.PI / 6);
-          ctx.beginPath(); ctx.moveTo(-9, 48); ctx.lineTo(0, 150); ctx.lineTo(9, 48); ctx.closePath(); ctx.fill();
-        }
-        ctx.restore();
-      }
       ctx.fillStyle = tema.sol; ctx.beginPath(); ctx.arc(sx, sy, 42, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.beginPath(); ctx.arc(sx - 10, sy - 10, 24, 0, Math.PI * 2); ctx.fill();
     }
     if (tema.nubes) {
       var par = cam * 0.2, W = 1400;
       for (var i = 0; i < 9; i++) {
-        var nx = ((i * 197 + 60 - par + this.t * (6 + i % 3 * 3)) % W + W) % W - 150;
+        var nx = ((i * 197 + 60 - par) % W + W) % W - 150;
         var ny = 36 + (i * 61) % 150;
         this.nube(nx, ny, 0.7 + (i % 3) * 0.3, tema.nubes);
       }
@@ -373,7 +363,7 @@
     var primero = Math.floor(par / paso) - 1;
     for (var k = primero; k <= primero + R.ANCHO / paso + 2; k++) {
       var h = hash(k, 31 + capa);
-      if (h < 0.35) continue;
+      if (h < 0.6) continue;
       var wx = k * paso + h * 60, x = wx - par, y = altura(wx);
       var esc = (capa === 0 ? 1 : 0.7) * (0.8 + h * 0.5);
       if (h > 0.7) {
@@ -507,13 +497,7 @@
     ctx.fillStyle = tema.sueloDetalle;
     for (var k = 0; k < 3; k++) {
       var rx = hash(cx * 3 + k, cy * 7 + 1), ry = hash(cy * 5 + k, cx * 11 + 3);
-      if (tema.decoracion && k === 0) {               // piedrita redonda con luz
-        ctx.beginPath(); ctx.ellipse(x + 8 + rx * 30, y + 24 + ry * 16, 5, 3.5, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = 'rgba(255,255,255,0.22)'; ctx.fillRect(x + 6 + rx * 30, y + 22 + ry * 16, 4, 1.5);
-        ctx.fillStyle = tema.sueloDetalle;
-      } else {
-        ctx.fillRect(x + 4 + rx * 34, y + 16 + ry * 26, 6, 4);
-      }
+      ctx.fillRect(x + 4 + rx * 34, y + 16 + ry * 26, 6, 4);
     }
     if (tema.ambiente === 'cueva') {
       ctx.strokeStyle = sombrear(tema.sueloRelleno, 0.18); ctx.lineWidth = 2;
@@ -531,14 +515,12 @@
         var fx = x + f * 12 + hash(cx + f, 5) * 4;
         ctx.beginPath(); ctx.moveTo(fx, y + 12); ctx.lineTo(fx + 10, y + 12); ctx.lineTo(fx + 5, y + 19 + hash(cx, f) * 5); ctx.closePath(); ctx.fill();
       }
-      // pastitos y, en los temas con decoración, flores
+      // pastitos y arbustos
       ctx.fillStyle = sombrear(tema.sueloTop, 0.25);
       ctx.fillRect(x + 6 + hash(cx, 9) * 20, y - 5, 4, 6);
       ctx.fillRect(x + 28 + hash(cx, 4) * 12, y - 4, 4, 5);
       if (tema.decoracion === 'prado') {
-        var h = hash(cx, 77);
-        if (h < 0.22) this.flor(x + 8 + hash(cx, 78) * 30, y, h < 0.08 ? '#ff6b9a' : h < 0.15 ? '#ffffff' : '#ffd23f');
-        else if (h > 0.93) this.arbusto(x + 24, y);
+        if (hash(cx, 77) > 0.93) this.arbusto(x + 24, y);   // sin flores amarillas: se confunden con las estrellas
       }
       if (tema.decoracion === 'cueva') {
         var hc = hash(cx, 77);
