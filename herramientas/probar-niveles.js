@@ -197,10 +197,25 @@ function jugar(def, decisiones) {
     return null;
   }
 
+  /* Enemigo vivo cerca por delante (a la altura del jugador): se intenta pisarlo. */
+  function enemigoAdelante() {
+    const bordeDer = j.x + j.w, pies = j.y + j.h;
+    let mejor = null;
+    nivel.enemigos.forEach((e, i) => {
+      if (!e.vivo) return;
+      const dist = e.x - bordeDer;
+      if (dist < -e.w || dist > 7 * T || Math.abs(e.y + e.h - pies) > 2 * T) return;
+      if (!mejor || dist < mejor.dist) mejor = { clave: 'e' + i, dist, largo: false };
+    });
+    return mejor;
+  }
+
   for (let paso = 0; paso < 120 * 200; paso++) {
     t += dt;
     if (j.enSuelo || j.coyote > 0) {
-      const o = obstaculo();
+      let o = obstaculo();
+      const oe = enemigoAdelante();
+      if (oe && (!o || oe.dist < o.dist)) o = oe;
       if (o) {
         if (o.clave !== ultima) { recientes.push(o.clave); if (recientes.length > 6) recientes.shift(); ultima = o.clave; }
         const v = VARIANTES[decisiones[o.clave] || 0];
@@ -224,6 +239,15 @@ function jugar(def, decisiones) {
     const fallar = (motivo) => ({ ok: false, motivo, col: Math.floor(maxX / T), maxX, t, claves: recientes.slice().reverse() });
     if (j.y > nivel.alto + 40) return fallar('se cayó al vacío');
     if (nivel.peligroEnRect(j.x + 5, j.y + 6, j.w - 10, j.h - 6)) return fallar('lo mataron los pinchos');
+    // Enemigos: igual que Partida.colisiones (pisarlos desde arriba o perder)
+    for (const e of nivel.enemigos) {
+      if (!e.vivo) continue;
+      if (j.x < e.x + e.w && j.x + j.w > e.x && j.y < e.y + e.h && j.y + j.h > e.y) {
+        const desdeArriba = j.vy > 0 && j.y + j.h - e.y < 18;
+        if (desdeArriba && e.aplastable()) { j.vy = -430; j.saltando = false; e.vivo = false; }
+        else return fallar('lo mató un enemigo');
+      }
+    }
     const m = nivel.meta;
     if (j.x + j.w > m.x + 12 && j.x < m.x + T - 12 && j.y + j.h > m.y - 3 * T)
       return { ok: true, t, estrellas, total: nivel.estrellas.length, maxX };
