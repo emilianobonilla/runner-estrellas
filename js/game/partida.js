@@ -28,7 +28,8 @@
     this.jugador = new R.Jugador();
     this.camara = { x: 0 };
     this.tiempo = 0;
-    this.puntos = 0;
+    this.puntos = 0;                       // los de este nivel (ranking y competencias)
+    this.puntosPrevios = op.puntosPrevios || 0;   // lo acumulado en los niveles anteriores del recorrido
     this.vidas = op.vidas == null ? R.VIDAS_INICIALES : op.vidas;
     this.estrellas = 0;
     this.totalEstrellas = this.nivel.estrellas.length;
@@ -319,6 +320,7 @@
       nivelId: this.def.id, nombre: this.nombre,
       puntos: this.puntos, estrellas: this.estrellas, totalEstrellas: this.totalEstrellas,
       tiempo: Math.round(this.tiempo * 10) / 10, completado: completado,
+      total: this.puntosPrevios + this.puntos,
       muertes: this.muertes, vidas: this.vidas, desglose: this.desglose
     });
   };

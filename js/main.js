@@ -79,7 +79,7 @@
   function setHUD(k, v) { if (ultimoHUD[k] !== v) { ultimoHUD[k] = v; hud[k].textContent = v; } }
   function actualizarHUD(p) {
     setHUD('estrellas', p.estrellas + '/' + p.totalEstrellas);
-    setHUD('puntos', String(p.puntos));
+    setHUD('puntos', String(p.puntosPrevios + p.puntos));
     setHUD('vidas', p.infinitas ? '∞' : 'x' + p.vidas);
     setHUD('tiempo', R.formatearTiempo(p.tiempo));
   }
@@ -144,11 +144,15 @@
      el menú, "Jugar de nuevo" o después del fin del juego); pasar al nivel
      siguiente o reintentar el nivel desde la pausa conserva las que quedan. */
   var vidas = R.VIDAS_INICIALES;
+  /* Puntaje del recorrido: suma los niveles ya pasados con las 3 vidas. Se anota
+     recién al terminar un nivel, así que reiniciarlo desde la pausa no deja
+     repetir estrellas para sumar de más. */
+  var puntosRecorrido = 0;
 
   function iniciarPartida(nivelDef, contexto, seguir) {
     contexto = contexto || { tipo: 'libre', nombre: datos.perfil.nombre || 'Anónimo' };
     var carrera = contexto.tipo === 'carrera';
-    if (!seguir) vidas = R.VIDAS_INICIALES;
+    if (!seguir) { vidas = R.VIDAS_INICIALES; puntosRecorrido = 0; }
     // "inicio" es el nivel con el que arrancó el recorrido: "Jugar de nuevo" vuelve ahí
     actual = { nivelDef: nivelDef, contexto: contexto, inicio: seguir && actual && actual.inicio ? actual.inicio : nivelDef };
     pantallaCompletaAlJugar();
@@ -157,6 +161,7 @@
       personaje: personajeDe(contexto), tema: temaPara(nivelDef), audio: audio, input: input,
       nombre: contexto.nombre,
       vidas: vidas,
+      puntosPrevios: puntosRecorrido,
       infinitas: carrera,                                   // en la carrera se reaparece siempre
       cuenta: carrera ? (contexto.cuenta || 3) : 0,
       alLlegar: carrera ? function (p) { R.Carrera.avisarMeta(p); } : null,
@@ -176,6 +181,7 @@
   function terminar(res) {
     var ctx = actual.contexto;
     vidas = res.vidas;          // lo que sobró se lleva al nivel siguiente
+    puntosRecorrido = res.total;
     partida = null;
     input.activo = false;
     hudEl.classList.add('oculto');
