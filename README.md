@@ -231,8 +231,9 @@ el que lo pisó). La estrella **vuelve a aparecer a los 3 segundos**, para que e
 último también la pueda juntar; el enemigo pisado **no vuelve**. Morir **no te elimina**:
 reaparecés en el último checkpoint y el único castigo es el tiempo perdido. Cuando alguien llega a la meta los demás **siguen corriendo**
 por el 2º y el 3er puesto, y la tabla de resultados se va completando sola. El reloj no se
-para: el botón ⏸ solo ofrece seguir o abandonar. Quien creó la sala puede tocar
-**Revancha** y lleva a todos de vuelta a la sala, aunque alguno siga corriendo.
+para: el botón ⏸ solo ofrece seguir o abandonar. No hay botón de revancha: cuando todos
+terminan, la pantalla de resultados avisa qué sigue y, a los 7 segundos, el anfitrión lleva a
+todos al nivel siguiente (o a la sala si era el último).
 
 **Esto es lo único del juego que necesita internet**, porque los dispositivos se conectan
 entre ellos (WebRTC). No hay servidor propio ni cuentas: solo se usa un servidor público

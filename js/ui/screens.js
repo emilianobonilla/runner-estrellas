@@ -366,17 +366,13 @@
     UI.mostrar(
       '<div class="panel">' +
       '<div class="barra-superior"><h2>🏃 Carrera multijugador</h2>' + botonVolver('menu') + '</div>' +
-      (C.soportada() ? '' : '<div class="mensaje">Este navegador no puede conectarse con otros dispositivos. Probá con Chrome, Edge o Firefox.</div>') +
-      '<p class="suave">Hasta <b>' + R.MAX_CORREDORES + ' corredores</b> en dispositivos distintos corren el mismo nivel al mismo tiempo. Uno crea la sala y le pasa el código a los demás. Gana el primero que toca la bandera 🏁, y los que vienen atrás siguen corriendo por el 2º y el 3er puesto.</p>' +
-      '<p class="suave">Las estrellas y los enemigos son de todos: el que llega primero se lleva la estrella ⭐ y el que pisa a un enemigo lo saca de la pista <b>para todos</b>. ' + 'La estrella <b>vuelve a aparecer a los 3 segundos</b>, así el que viene más atrás también la puede juntar; el enemigo pisado no vuelve.</p>' +
-      '<p class="aviso">Ojo: la carrera es lo único del juego que necesita internet en todos los dispositivos, porque se conectan entre ellos. Todo lo demás sigue andando sin conexión.</p>' +
-      (location.protocol === 'file:' ? '<p class="aviso">📄 Abriste el juego con doble clic. Si la sala no llega a abrirse, probá entrando desde la página web del juego (o desde un servidor local): algunos navegadores limitan las conexiones cuando el archivo se abre directo del disco.</p>' : '') +
+      (C.soportada() ? '' : '<div class="mensaje">Este navegador no sirve para jugar en red. Usá Chrome, Edge o Firefox.</div>') +
       '<label class="campo"><span>Tu nombre</span><input type="text" maxlength="20" data-campo="nombre" placeholder="Escribí tu nombre" value="' + esc(datos().perfil.nombre) + '"></label>' +
       '<div class="botones">' +
-      '<button class="btn principal" data-accion="carreraCrear">📡 &nbsp;Crear una sala</button>' +
-      '<button class="btn" data-accion="carreraUnirse">🔢 &nbsp;Entrar con un código</button>' +
+      '<button class="btn principal" data-accion="carreraCrear">📡 &nbsp;Crear sala</button>' +
+      '<button class="btn" data-accion="carreraUnirse">🔢 &nbsp;Entrar</button>' +
       '</div>' +
-      '<p class="aviso" style="margin-top:16px">Jugás con <b>' + esc(personajeActual().nombre) + '</b> · <a href="#" data-accion="personalizar" style="color:var(--acento2)">cambiar</a></p>' +
+      '<p class="aviso" style="margin-top:16px"><b>' + esc(personajeActual().nombre) + '</b> · <a href="#" data-accion="personalizar" style="color:var(--acento2)">cambiar</a></p>' +
       '</div>');
     UI.pantalla = 'carrera';
   };
@@ -386,7 +382,7 @@
       '<div class="panel angosto">' +
       '<div class="barra-superior"><h2>Entrar a una sala</h2>' + botonVolver('carrera', 'Carrera') + '</div>' +
       (error ? '<div class="mensaje">' + esc(error) + '</div>' : '') +
-      '<label class="campo"><span>Código de la sala (4 números)</span>' +
+      '<label class="campo"><span>Código</span>' +
       '<input type="text" id="carrera-codigo" class="codigo" inputmode="numeric" autocomplete="off" maxlength="4" placeholder="1234" autofocus></label>' +
       '<div id="carrera-error" class="aviso" style="color:var(--peligro)"></div>' +
       '<div class="pie"><span></span><button class="btn principal" data-accion="carreraConectar">Conectar</button></div>' +
@@ -398,8 +394,7 @@
     var C = R.Carrera;
     UI.mostrar(
       '<div class="panel angosto centrado">' +
-      '<h2>' + (C.esAnfitrion ? 'Abriendo la sala…' : 'Buscando la sala ' + esc(C.codigo) + '…') + '</h2>' +
-      '<p class="suave">Conectando con los otros dispositivos.</p>' +
+      '<h2>' + (C.esAnfitrion ? 'Abriendo sala…' : 'Sala ' + esc(C.codigo) + '…') + '</h2>' +
       '<div class="botones"><button class="btn" data-accion="carreraSalir">Cancelar</button></div>' +
       '</div>');
     UI.pantalla = 'carreraConectando';
@@ -409,11 +404,10 @@
   function fichaCorredor(j, soyYo) {
     var per = personajePorId(j.personajeId);
     var color = R.colorCorredor(j.jid);
-    var pie = !j.conectado ? '🔌 Se desconectó' : j.listo ? '✅ Listo' : '⏳ Sin confirmar';
+    var pie = !j.conectado ? '🔌' : j.listo ? '✅ Listo' : '⏳';
     // Versión del juego de cada uno: en rojo si no es la misma que la mía
     var igual = j.version === R.VERSION.numero;
-    var version = '<div class="meta"' + (igual ? '' : ' style="color:var(--peligro);font-weight:700"') + '>' +
-      (j.version ? 'v' + esc(j.version) : 'versión vieja') + (igual ? '' : ' ⚠') + '</div>';
+    var version = igual ? '' : '<div class="meta" style="color:var(--peligro);font-weight:700">⚠</div>';
     return '<div class="tarjeta centrado ficha-corredor' + (j.listo && j.conectado ? ' sel' : '') + '"' +
       ' style="border-left:6px solid ' + color + '">' +
       '<canvas width="96" height="96" data-personaje="' + esc(per.id) + '"></canvas>' +
@@ -432,7 +426,7 @@
     var libres = C.lugaresLibres();
     if (libres > 0) {
       fichas += '<div class="tarjeta centrado"><div style="font-size:52px;line-height:96px">👤</div>' +
-        '<h4>Lugar libre</h4><div class="meta">Quedan ' + libres + ' de ' + R.MAX_CORREDORES + '</div></div>';
+        '</div>';
     }
 
     function opcionesNivel(lista) {
@@ -455,9 +449,8 @@
     if (otros.length) niveles += grupoNiveles({ orden: '', nombre: 'Otros' }, otros);
 
     var cabezal = C.esAnfitrion
-      ? '<p class="suave centrado" style="margin-bottom:4px">Código de la sala: decíselo a los demás</p>' +
-        '<div class="codigo-grande" aria-label="Código de sala ' + esc(C.codigo.split('').join(' ')) + '">' + esc(C.codigo) + '</div>'
-      : '<p class="suave centrado">Estás en la sala <b>' + esc(C.codigo) + '</b></p>';
+      ? '<div class="codigo-grande" aria-label="Código de sala ' + esc(C.codigo.split('').join(' ')) + '">' + esc(C.codigo) + '</div>'
+      : '<div class="codigo-grande" aria-label="Sala ' + esc(C.codigo.split('').join(' ')) + '">' + esc(C.codigo) + '</div>';
 
     var conectados = C.conectados().length;
     var puedeEstarListo = C.conectada() && conectados >= 2;
@@ -480,12 +473,7 @@
       : '<button class="btn principal" data-accion="carreraListo"' + (puedeEstarListo ? '' : ' disabled') + '>' +
         (C.yo().listo ? '↩ No estoy listo' : '✅ Estoy listo') + '</button>';
 
-    var faltan = C.conectados().filter(function (j) { return !j.listo; }).length;
-    var pieTexto = !puedeEstarListo
-      ? 'Esperando a que entre alguien más… (hacen falta al menos 2 corredores)'
-      : faltan > 0
-        ? 'Cuando estén todos listos arranca la cuenta regresiva. Falta' + (faltan === 1 ? '' : 'n') + ' ' + faltan + '.'
-        : 'Largando…';
+    var pieTexto = !puedeEstarListo ? '👥 …' : '';
 
     UI.mostrar(
       '<div class="panel">' +
@@ -493,17 +481,18 @@
       '<button class="btn volver" data-accion="carreraSalir">← Salir</button></div>' +
       (C.error ? '<div class="mensaje" role="alert">' + esc(C.error) + ' <button class="btn chico" data-accion="carreraReintentar" style="margin-left:8px">Probar de nuevo</button></div>' : '') +
       (C.aviso ? '<div class="mensaje" role="status" aria-live="polite">' + esc(C.aviso) + '</div>' : '') +
-      (C.otraVersion().length ? '<div class="mensaje">⚠ No todos tienen la misma versión del juego (vos tenés la <b>' + esc(R.versionCorta()) + '</b>). ' +
-        'Pueden correr igual, pero para que todo coincida salgan de la sala, recarguen la página y vuelvan a entrar.</div>' : '') +
-      (C.yaLargaron ? '<div class="mensaje">La carrera ya empezó: quedate acá y corrés en la próxima.</div>' : '') +
+      (C.otraVersion().length ? '<div class="mensaje">⚠ Versiones distintas</div>' : '') +
+      (C.yaLargaron ? '<div class="mensaje">⏳</div>' : '') +
       cabezal +
       '<div class="tarjetas" style="margin-top:16px">' + fichas + '</div>' +
-      '<h3>Tu personaje <span class="suave" style="font-size:13px;text-transform:none;letter-spacing:0">(tu nombre no cambia)</span></h3>' +
+      '<h3>Personaje</h3>' +
       '<div class="personajes-sala" role="group" aria-label="Elegir tu personaje">' + selectorPersonajes + '</div>' +
-      '<h3>Nivel' + (C.esAnfitrion ? '' : ' (lo elige quien creó la sala)') + '</h3>' +
-      '<div class="mundos-sala">' + niveles + '</div>' +
+      '<h3>Nivel</h3>' +
+      (C.esAnfitrion
+        ? '<div class="mundos-sala">' + niveles + '</div>'
+        : '<div class="centrado"><span class="chip sel" aria-current="true">' + esc(etiqueta(C.nivel())) + '</span></div>') +
       '<div class="pie">' + latencia + botonPrincipal + '</div>' +
-      '<p class="aviso">' + pieTexto + '</p>' +
+      (pieTexto ? '<p class="aviso">' + pieTexto + '</p>' : '') +
       '</div>');
     UI.pantalla = 'carreraSala';
   };
@@ -511,8 +500,7 @@
   UI.pausaCarrera = function () {
     UI.mostrar(
       '<div class="panel angosto centrado">' +
-      '<h2 style="font-size:30px">🏃 La carrera sigue</h2>' +
-      '<p class="suave">En una carrera el reloj no se detiene: los demás siguen corriendo mientras leés esto.</p>' +
+      '<h2 style="font-size:30px">🏃 ¡Siguen corriendo!</h2>' +
       '<div class="botones">' +
       '<button class="btn principal" data-accion="continuar" autofocus>▶ &nbsp;Seguir corriendo</button>' +
       '<button class="btn peligro" data-accion="abandonar">🏳 &nbsp;Abandonar la carrera</button>' +
@@ -534,8 +522,8 @@
     var total = C.jugadores.length;
 
     var titulo =
-      faltan > 0 ? '⏳ ' + (faltan === 1 ? 'Falta llegar un corredor' : 'Faltan llegar ' + faltan + ' corredores') :
-      !res.completado ? '🏳 No llegaste a la meta' :
+      faltan > 0 ? '⏳ ' + faltan + ' corriendo…' :
+      !res.completado ? '🏳 No llegaste' :
       puesto === 1 ? '🏆 ¡Ganaste la carrera!' :
       puesto === 2 ? '🥈 ¡Segundo puesto!' :
       puesto === 3 ? '🥉 ¡Tercer puesto!' :
@@ -560,30 +548,28 @@
       '<th class="num">⏱</th><th class="num">⭐</th><th class="num">🏆</th><th></th></tr></thead>' +
       '<tbody>' + filas + '</tbody></table>';
 
-    // Como en Mario: cuando todos terminaron, el anfitrión larga el nivel siguiente solo
+    // Cuando todos terminaron, el anfitrión lleva a todos al nivel siguiente solo;
+    // si era el último, a la sala.
     clearTimeout(UI._seguirCarrera);
-    var sig = faltan === 0 && C.conectada() ? C.siguiente() : null;
-    if (sig && C.esAnfitrion) {
+    var terminaron = faltan === 0 && C.conectada();
+    var sig = terminaron ? C.siguiente() : null;
+    if (terminaron && C.esAnfitrion) {
       UI._seguirCarrera = setTimeout(function () {
-        if (UI.pantalla === 'resultadosCarrera') C.seguir();
+        if (UI.pantalla !== 'resultadosCarrera') return;
+        if (sig) C.seguir(); else C.pedirRevancha();
       }, 7000);
     }
-    var proximo = sig ? '<p class="suave">▶ Sigue ' + esc(etiqueta(sig)) + ' en unos segundos…</p>' : '';
-
-    var revancha = C.conectada()
-      ? (C.esAnfitrion
-        ? '<button class="btn principal" data-accion="carreraRevancha">🔁 &nbsp;Revancha (todos a la sala)</button>'
-        : '<button class="btn principal" data-accion="carreraRevancha">↩ &nbsp;Volver a la sala</button>')
-      : '';
+    var proximo = !terminaron ? ''
+      : sig ? '<p class="suave">▶ ' + esc(etiqueta(sig)) + '</p>'
+      : '<p class="suave">↩ Sala</p>';
 
     UI.mostrar(
       '<div class="panel centrado">' +
       '<h2 style="font-size:32px">' + titulo + '</h2>' +
-      (faltan > 0 ? '<p class="suave">La tabla se va completando sola a medida que van llegando.</p>' : '') +
       proximo +
-      (!C.conectada() ? '<p class="suave">Se cortó la conexión con la sala: puede faltar algún resultado.</p>' : '') +
+      (!C.conectada() ? '<p class="suave">🔌</p>' : '') +
       '<div class="contenedor-tabla" style="margin-top:14px">' + tabla + '</div>' +
-      '<div class="botones">' + revancha +
+      '<div class="botones">' +
       '<button class="btn" data-accion="carreraSalir">← &nbsp;Salir de la carrera</button>' +
       '</div></div>');
     UI.pantalla = 'resultadosCarrera';
@@ -691,7 +677,6 @@
     carreraListo: function () { R.Carrera.alternarListo(); },
     carreraPersonaje: function (id) { R.Carrera.elegirPersonaje(id); },
     carreraNivel: function (id) { R.Carrera.elegirNivel(id); },
-    carreraRevancha: function () { R.Carrera.pedirRevancha(); UI.carreraSala(); },
 
     jugarTurno: function (arg) {
       var t = JSON.parse(arg), def = nivel(t.nivel); if (!def) return;
