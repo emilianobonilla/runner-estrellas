@@ -201,8 +201,8 @@ Para usar un dibujo propio, agregá una hoja de sprites PNG en `assets/img/` y e
 Los temas viven en `data/themes.js`: cielo, colinas, suelo, bloques, pinchos, estrellas,
 bandera y enemigos son colores editables (cada tipo de enemigo aclara u oscurece el color
 `enemigo` del tema con su campo `tinte`). El tema **no se elige nivel por nivel**: lo elige
-el mundo (`data/worlds.js`), así los niveles de un mismo mundo se ven parecidos. Desde
-*Personalizar* se puede forzar un tema para todos los niveles.
+el mundo (`data/worlds.js`), así los niveles de un mismo mundo se ven parecidos, y el
+jugador no puede cambiarlo.
 
 Un tema puede usar imágenes propias (`imagenes: { fondo, suelo, bloque, pincho, estrella }`);
 si el archivo no existe se usa el dibujo por defecto.

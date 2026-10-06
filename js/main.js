@@ -123,9 +123,7 @@
     return R.personajes.filter(function (p) { return p.id === datos.perfil.personaje; })[0] || R.personajes[0];
   }
   function temaPara(nivelDef) {
-    var pref = datos.perfil.tema;
-    if (pref && pref !== 'auto' && R.temas[pref]) return R.temas[pref];
-    // Si no hay preferencia, manda la estética del mundo del nivel
+    // La estética la define el mundo del nivel (data/worlds.js); no se elige
     return R.temaDe(nivelDef) || R.temas[Object.keys(R.temas)[0]];
   }
 
@@ -284,7 +282,7 @@
     dibujarPersonajeEn: function (cv, per) {
       var ctx = cv.getContext('2d');
       ctx.clearRect(0, 0, cv.width, cv.height);
-      R.dibujarPersonaje(ctx, per, cv.width / 2, cv.height - 10, { enSuelo: true, mirando: 1, vx: 0, t: 0, esc: 1.35 });
+      R.dibujarPersonaje(ctx, per, cv.width / 2, cv.height - 10, { enSuelo: true, mirando: 1, vx: 0, t: 0, esc: Math.min(1.35, (cv.height - 8) / 95) });
     },
 
     descargarJSON: function (nombre, obj) {

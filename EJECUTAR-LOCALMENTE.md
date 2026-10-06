@@ -18,12 +18,16 @@ Firefox, Edge o Safari. Funciona porque el juego usa scripts clásicos, sin mód
 viene en macOS y Linux:
 
 ```bash
-python3 -m http.server 8123
+python3 herramientas/servir.py 8123
 ```
 
 y abrí <http://localhost:8123>. Con un servidor se puede probar la instalación como app
 (`manifest.webmanifest`) y abrir el juego desde un celular o tablet de la misma red Wi-Fi,
 entrando a `http://<IP-de-tu-computadora>:8123`.
+
+Este servidor evita la caché del navegador: si editás un archivo y no ves el cambio, no
+usaste `servir.py` (con `python3 -m http.server` el navegador guarda los `.js` viejos).
+En ese caso recargá con Ctrl+Shift+R (Cmd+Shift+R en Mac).
 
 ## 3. Probar los niveles (opcional)
 
