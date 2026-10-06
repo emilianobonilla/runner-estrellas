@@ -188,6 +188,7 @@
     this.fondo(p.tema, p.camara.x);
     ctx.save();
     ctx.translate(-cam, 0);
+    if (p.tema.decoracion === 'playa') this.aguaDeHuecos(p.nivel, cam);
     this.tiles(p.nivel, p.tema, cam);
     this.checkpoints(p);
     this.meta(p);
@@ -242,6 +243,7 @@
     }
     var self = this;
     if (tema.ambiente === 'cueva') this.fondoCueva(tema, cam);
+    if (tema.decoracion === 'playa') this.mar(cam);
     (tema.colinas || []).forEach(function (color, i) {
       var par = cam * (0.35 + i * 0.25);
       var base = R.ALTO - T - (i === 0 ? 40 : 10);
@@ -255,6 +257,7 @@
       for (var x = 0; x <= R.ANCHO; x += 8) ctx.lineTo(x, altura(x + par));
       ctx.lineTo(R.ANCHO, R.ALTO); ctx.closePath(); ctx.fill();
       if (tema.decoracion === 'prado') self.arbolesLejanos(altura, par, i, color);
+      if (tema.decoracion === 'playa' && i === 1) self.palmeras(par);
     });
     if (tema.ambiente === 'cueva') this.techoCueva(tema, cam);
     if (tema.decoracion === 'cueva') this.ambienteCueva(tema, cam);
@@ -386,6 +389,80 @@
     }
   };
 
+  /* Mar al horizonte con brillos y un velero lejano (temas con decoracion 'playa'). */
+  Renderer.prototype.mar = function (cam) {
+    var ctx = this.ctx, y0 = R.ALTO - 210;
+    var g = ctx.createLinearGradient(0, y0, 0, R.ALTO - T);
+    g.addColorStop(0, '#1fa9d6'); g.addColorStop(1, '#5fd3e6');
+    ctx.fillStyle = g; ctx.fillRect(0, y0, R.ANCHO, R.ALTO - T - y0);
+    ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.fillRect(0, y0, R.ANCHO, 2);
+    var par = cam * 0.12;
+    for (var i = 0; i < 26; i++) {
+      var x = ((i * 83 + hash(i, 5) * 40 - par) % (R.ANCHO + 80) + R.ANCHO + 80) % (R.ANCHO + 80) - 40;
+      var y = y0 + 10 + (i * 37) % 140;
+      var brillo = 0.25 + 0.3 * Math.abs(Math.sin(this.t * 1.6 + i));
+      ctx.fillStyle = 'rgba(255,255,255,' + brillo.toFixed(2) + ')';
+      ctx.fillRect(x, y, 14 + hash(i, 8) * 14, 2);
+    }
+    // velero
+    var vx = ((620 - cam * 0.06 - this.t * 4) % (R.ANCHO + 200) + R.ANCHO + 200) % (R.ANCHO + 200) - 100;
+    var vy = y0 + 2 + Math.sin(this.t * 1.3) * 1.5;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.moveTo(vx, vy - 4); ctx.lineTo(vx, vy - 40); ctx.lineTo(vx + 24, vy - 4); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#ff7b54';
+    ctx.beginPath(); ctx.moveTo(vx - 4, vy - 4); ctx.lineTo(vx - 4, vy - 28); ctx.lineTo(vx - 20, vy - 4); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#7a4a2a'; ctx.fillRect(vx - 22, vy - 4, 50, 5);
+  };
+
+  /* Palmeras sobre la duna del medio. */
+  Renderer.prototype.palmeras = function (par) {
+    var ctx = this.ctx, paso = 330;
+    var primero = Math.floor(par / paso) - 1;
+    for (var k = primero; k <= primero + R.ANCHO / paso + 2; k++) {
+      var h = hash(k, 77);
+      if (h < 0.25) continue;
+      var x = k * paso + h * 90 - par;
+      var base = R.ALTO - T - 6, alto = 120 + h * 50, esc = 0.85 + h * 0.3;
+      var sw = Math.sin(this.t * 1.2 + k) * 3;
+      ctx.strokeStyle = '#8a5a2b'; ctx.lineWidth = 9 * esc; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(x, base); ctx.quadraticCurveTo(x + 22, base - alto * 0.55, x + 12 + sw, base - alto); ctx.stroke();
+      ctx.strokeStyle = 'rgba(0,0,0,0.18)'; ctx.lineWidth = 2;
+      for (var a = 1; a < 6; a++) {
+        var ty = base - alto * a / 6; ctx.beginPath(); ctx.moveTo(x + 4 + a, ty); ctx.lineTo(x + 14 + a, ty); ctx.stroke();
+      }
+      var cx = x + 12 + sw, cy = base - alto;
+      ctx.fillStyle = '#2e9e57';
+      for (var f = 0; f < 6; f++) {
+        var ang = -Math.PI / 2 + (f - 2.5) * 0.62 + Math.sin(this.t * 1.5 + f + k) * 0.05;
+        var lx = cx + Math.cos(ang) * 58 * esc, ly = cy + Math.sin(ang) * 34 * esc + 22 * esc;
+        ctx.beginPath(); ctx.moveTo(cx, cy);
+        ctx.quadraticCurveTo(cx + Math.cos(ang) * 30 * esc, cy + Math.sin(ang) * 42 * esc - 8, lx, ly);
+        ctx.quadraticCurveTo(cx + Math.cos(ang) * 30 * esc, cy + Math.sin(ang) * 42 * esc + 6, cx, cy);
+        ctx.fill();
+      }
+      ctx.fillStyle = '#6b4220';
+      ctx.beginPath(); ctx.arc(cx - 3, cy + 5, 4, 0, Math.PI * 2); ctx.arc(cx + 4, cy + 6, 4, 0, Math.PI * 2); ctx.fill();
+    }
+  };
+
+  /* Agua con espuma en el fondo de los huecos (en coordenadas del mundo). */
+  Renderer.prototype.aguaDeHuecos = function (nivel, cam) {
+    var ctx = this.ctx, y = (nivel.filas - 1) * T + 14;
+    var g = ctx.createLinearGradient(0, y, 0, y + T);
+    g.addColorStop(0, '#2bb8de'); g.addColorStop(1, '#0f86b8');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.moveTo(cam - 10, y + T);
+    for (var x = cam - 10; x <= cam + R.ANCHO + 10; x += 8) ctx.lineTo(x, y + Math.sin(x * 0.05 + this.t * 3) * 3);
+    ctx.lineTo(cam + R.ANCHO + 10, y + T); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath();
+    for (var x2 = cam - 10; x2 <= cam + R.ANCHO + 10; x2 += 8) {
+      var yy = y + Math.sin(x2 * 0.05 + this.t * 3) * 3;
+      if (x2 === cam - 10) ctx.moveTo(x2, yy); else ctx.lineTo(x2, yy);
+    }
+    ctx.stroke();
+  };
+
   Renderer.prototype.nube = function (x, y, e, color) {
     var ctx = this.ctx;
     function forma(dy) {
@@ -469,6 +546,22 @@
         if (hc < 0.28) this.cristal(x + 10 + hash(cx, 78) * 26, y, hc < 0.1 ? '#d77aff' : hc < 0.2 ? '#46d4ff' : '#8f86ff');
         else if (hc > 0.9) this.hongo(x + 24, y);
       }
+      if (tema.decoracion === 'playa') this.detallePlaya(x, y, cx);
+    }
+  };
+
+  /* Conchitas, estrellas de mar y granitos sobre la arena. */
+  Renderer.prototype.detallePlaya = function (x, y, cx) {
+    var ctx = this.ctx, h = hash(cx, 21);
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.fillRect(x + 8 + hash(cx, 2) * 30, y + 4, 3, 2);
+    ctx.fillRect(x + 4 + hash(cx, 3) * 36, y + 8, 2, 2);
+    if (h > 0.82) {          // estrella de mar
+      R.dibujarEstrella(ctx, x + 12 + h * 20, y - 3, 6, 0.3, '#ff7b54', '#d9532e');
+    } else if (h < 0.14) {   // caracol
+      ctx.fillStyle = '#fff3e0'; ctx.strokeStyle = '#e0a98a'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(x + 24, y - 1, 6, Math.PI, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x + 24, y - 6); ctx.lineTo(x + 24, y - 1); ctx.stroke();
     }
   };
 

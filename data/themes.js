@@ -147,6 +147,7 @@ RUNNER.registrarTema({
   checkpoint: '#00c2a8',
   enemigo: '#ef6f4b',
   enemigoOjos: '#fff',
+  decoracion: 'playa',   // activa mar, velero, palmeras, agua en los huecos y conchitas
   imagenes: {}
 });
 
