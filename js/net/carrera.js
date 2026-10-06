@@ -466,6 +466,24 @@
     avisarCambio();
   };
 
+  /* Nivel que sigue al de esta carrera (null si era el último). */
+  C.siguiente = function () {
+    var i = R.niveles.indexOf(C.nivel());
+    return i >= 0 ? R.niveles[i + 1] || null : null;
+  };
+
+  /* Solo el anfitrión: cuando todos terminaron, larga el nivel siguiente sin
+     pasar por la sala (la lista nueva con el nivel viaja antes del "arrancar"). */
+  C.seguir = function () {
+    var sig = C.siguiente();
+    if (!C.esAnfitrion || !sig || C.estado !== 'fin' || !C.conectada() || C.faltanLlegar() > 0) return false;
+    C.nivelId = sig.id;
+    C.jugadores.forEach(function (j) { j.res = null; j.listo = false; });
+    difundirSala();
+    largar();
+    return true;
+  };
+
   function largar() {
     if (!C.esAnfitrion) return;
     C.red.enviar('arrancar', {});

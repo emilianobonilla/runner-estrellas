@@ -273,8 +273,7 @@
   /* ================= RESULTADOS ================= */
   UI.resultados = function (res, ctx, esRecord, mejoro) {
     var d = res.desglose || {};
-    var idx = R.niveles.findIndex(function (n) { return n.id === res.nivelId; });
-    var siguiente = res.completado && ctx.tipo === 'libre' && R.niveles[idx + 1];
+    var fin = res.completado;   // si pasó el nivel y acá se muestra, era el último del recorrido
     var filas = '<li><span>⭐ Estrellas ' + res.estrellas + '/' + res.totalEstrellas + '</span><b>' + (d.estrellas || 0) + '</b></li>';
     if (d.enemigos) filas += '<li><span>👟 Enemigos pisados</span><b>' + d.enemigos + '</b></li>';
     if (res.completado) {
@@ -285,7 +284,7 @@
     filas += '<li class="total"><span>Total</span><b>' + res.puntos + '</b></li>';
     // Las vidas son de toda la partida: conviene ver con cuántas se sigue
     var vidasTexto = res.completado
-      ? '❤️ Te quedan ' + res.vidas + (res.vidas === 1 ? ' vida' : ' vidas') + ' para el resto del juego'
+      ? '🏆 ¡Terminaste todos los niveles!'
       : '❤️ Te quedaste sin vidas: el juego vuelve a empezar con ' + R.VIDAS_INICIALES;
 
     var volver = ctx.tipo === 'competencia'
@@ -301,11 +300,24 @@
       (ctx.tipo === 'competencia' && mejoro ? '<p class="suave">Resultado guardado en la competencia.</p>' : '') +
       (ctx.tipo === 'competencia' && !mejoro ? '<p class="suave">No superaste tu mejor puntaje en la competencia.</p>' : '') +
       '<ul class="desglose" style="text-align:left">' + filas + '</ul>' +
-      (ctx.tipo === 'libre' ? '<p class="suave">' + vidasTexto + '</p>' : '') +
+      '<p class="suave">' + vidasTexto + '</p>' +
       '<div class="botones">' +
-      (siguiente ? '<button class="btn principal" data-accion="siguienteNivel" data-arg="' + esc(siguiente.id) + '">▶ Siguiente nivel: ' + esc(siguiente.nombre) + '</button>' : '') +
-      '<button class="btn ' + (siguiente ? '' : 'principal') + '" data-accion="reiniciar">↻ Jugar de nuevo</button>' +
+      '<button class="btn principal" data-accion="reiniciar">↻ Jugar de nuevo</button>' +
       volver +
+      '</div></div>');
+  };
+
+  /* Entre niveles: cartel corto y sigue solo (el botón salta la espera). */
+  UI.transicion = function (sig, res, vidas) {
+    UI.mostrar(
+      '<div class="panel angosto centrado">' +
+      '<h2 style="font-size:32px">🎉 ¡Nivel completado!</h2>' +
+      '<p class="suave">' + esc((nivel(res.nivelId) || {}).nombre || '') + ' · ' + res.puntos + ' puntos · ⭐ ' + res.estrellas + '/' + res.totalEstrellas + '</p>' +
+      '<p class="suave">❤️ ' + vidas + (vidas === 1 ? ' vida' : ' vidas') + '</p>' +
+      '<p style="font-size:22px;margin:14px 0">Siguiente: <b>' + esc(etiqueta(sig)) + '</b></p>' +
+      '<div class="botones">' +
+      '<button class="btn principal" data-accion="seguirYa" data-arg="' + esc(sig.id) + '" autofocus>▶ Seguir</button>' +
+      '<button class="btn" data-accion="salirRecorrido">✕ Salir</button>' +
       '</div></div>');
   };
 
@@ -548,6 +560,16 @@
       '<th class="num">⏱</th><th class="num">⭐</th><th class="num">🏆</th><th></th></tr></thead>' +
       '<tbody>' + filas + '</tbody></table>';
 
+    // Como en Mario: cuando todos terminaron, el anfitrión larga el nivel siguiente solo
+    clearTimeout(UI._seguirCarrera);
+    var sig = faltan === 0 && C.conectada() ? C.siguiente() : null;
+    if (sig && C.esAnfitrion) {
+      UI._seguirCarrera = setTimeout(function () {
+        if (UI.pantalla === 'resultadosCarrera') C.seguir();
+      }, 7000);
+    }
+    var proximo = sig ? '<p class="suave">▶ Sigue ' + esc(etiqueta(sig)) + ' en unos segundos…</p>' : '';
+
     var revancha = C.conectada()
       ? (C.esAnfitrion
         ? '<button class="btn principal" data-accion="carreraRevancha">🔁 &nbsp;Revancha (todos a la sala)</button>'
@@ -558,6 +580,7 @@
       '<div class="panel centrado">' +
       '<h2 style="font-size:32px">' + titulo + '</h2>' +
       (faltan > 0 ? '<p class="suave">La tabla se va completando sola a medida que van llegando.</p>' : '') +
+      proximo +
       (!C.conectada() ? '<p class="suave">Se cortó la conexión con la sala: puede faltar algún resultado.</p>' : '') +
       '<div class="contenedor-tabla" style="margin-top:14px">' + tabla + '</div>' +
       '<div class="botones">' + revancha +
@@ -601,11 +624,8 @@
       R.app.iniciarPartida(def, { tipo: 'libre', nombre: nombreJugador() });
     },
 
-    // Desde los resultados: sigue el mismo recorrido, con las vidas que quedaron
-    siguienteNivel: function (id) {
-      var def = nivel(id); if (!def) return;
-      R.app.iniciarPartida(def, { tipo: 'libre', nombre: nombreJugador() }, true);
-    },
+    seguirYa: function (id) { R.app.seguirYa(id); },
+    salirRecorrido: function () { R.app.cancelarSeguir(); R.app.abandonar(); },
 
     elegirPersonaje: function (id) { datos().perfil.personaje = id; R.Storage.guardar(); repintarPersonalizar(); },
     elegirTema: function (id) { datos().perfil.tema = id; R.Storage.guardar(); repintarPersonalizar(); },
