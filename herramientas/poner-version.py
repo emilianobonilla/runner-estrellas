@@ -8,9 +8,12 @@ Normalmente NO hace falta correrlo a mano: lo usa la acción de GitHub
 
 Qué toca:
   1. js/core/version.js: número, nombre, fecha de hoy y commit.
-  2. index.html: le agrega "?v=1.2.0" a cada .js y .css propio, para que el
-     navegador no se quede con archivos viejos guardados en caché después de
-     publicar una versión nueva.
+  2. index.html: le agrega "?v=1.2.0" a cada .js, .css, imagen e ícono propio
+     (y al manifest), para que el navegador no se quede con archivos viejos
+     guardados en caché después de publicar una versión nueva.
+  3. manifest.webmanifest: lo mismo en los íconos.
+  (Las imágenes que dibuja el juego en el lienzo reciben la versión solas,
+  en R.imagen de js/game/render.js.)
 """
 import datetime
 import pathlib
@@ -43,8 +46,14 @@ archivo.write_text(js, encoding="utf-8")
 
 archivo = RAIZ / "index.html"
 html = archivo.read_text(encoding="utf-8")
-html = re.sub(r'((?:src|href)="(?:js|data|css)/[^"?]+\.(?:js|css))(?:\?v=[^"]*)?"',
+html = re.sub(r'((?:src|href)="(?:(?:js|data|css)/|assets/)[^"?]+\.(?:js|css|png|svg|jpg|webp)|href="manifest\.webmanifest)(?:\?v=[^"]*)?"',
               lambda m: m.group(1) + '?v=' + numero + '"', html)
 archivo.write_text(html, encoding="utf-8")
+
+archivo = RAIZ / "manifest.webmanifest"
+man = archivo.read_text(encoding="utf-8")
+man = re.sub(r'("src": "assets/[^"?]+\.(?:png|svg|jpg|webp))(?:\?v=[^"]*)?"',
+             lambda m: m.group(1) + '?v=' + numero + '"', man)
+archivo.write_text(man, encoding="utf-8")
 
 print("✓ v%s · %s · %s · %s" % (numero, nombre, hoy, commit or "sin commit"))

@@ -9,7 +9,11 @@
   R.imagen = function (src) {
     if (!src) return null;
     var im = cacheImg[src];
-    if (!im) { im = new Image(); im.src = src; cacheImg[src] = im; }
+    if (!im) {
+      // La versión en la URL evita ver imágenes viejas guardadas en caché tras actualizar
+      var v = R.VERSION && !/^data:/.test(src) ? (src.indexOf('?') < 0 ? '?' : '&') + 'v=' + R.VERSION.numero : '';
+      im = new Image(); im.src = src + v; cacheImg[src] = im;
+    }
     return im.complete && im.naturalWidth > 0 ? im : null;
   };
 
@@ -212,40 +216,81 @@
     }
 
     if (tema.sol) {
-      ctx.fillStyle = tema.sol; ctx.beginPath(); ctx.arc(R.ANCHO - 130, 84, 42, 0, Math.PI * 2); ctx.fill();
+      var sx = R.ANCHO - 130, sy = 84;
+      var halo = ctx.createRadialGradient(sx, sy, 20, sx, sy, 190);
+      halo.addColorStop(0, 'rgba(255,248,200,0.75)'); halo.addColorStop(1, 'rgba(255,248,200,0)');
+      ctx.fillStyle = halo; ctx.fillRect(sx - 190, sy - 190, 380, 380);
+      if (tema.decoracion) {
+        ctx.save(); ctx.translate(sx, sy); ctx.rotate(this.t * 0.05);
+        ctx.fillStyle = 'rgba(255,255,255,0.09)';
+        for (var r = 0; r < 12; r++) {
+          ctx.rotate(Math.PI / 6);
+          ctx.beginPath(); ctx.moveTo(-9, 48); ctx.lineTo(0, 150); ctx.lineTo(9, 48); ctx.closePath(); ctx.fill();
+        }
+        ctx.restore();
+      }
+      ctx.fillStyle = tema.sol; ctx.beginPath(); ctx.arc(sx, sy, 42, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.beginPath(); ctx.arc(sx - 10, sy - 10, 24, 0, Math.PI * 2); ctx.fill();
     }
     if (tema.nubes) {
-      ctx.fillStyle = tema.nubes;
       var par = cam * 0.2, W = 1400;
       for (var i = 0; i < 9; i++) {
-        var nx = ((i * 197 + 60 - par) % W + W) % W - 150;
+        var nx = ((i * 197 + 60 - par + this.t * (6 + i % 3 * 3)) % W + W) % W - 150;
         var ny = 36 + (i * 61) % 150;
-        this.nube(nx, ny, 0.7 + (i % 3) * 0.3);
+        this.nube(nx, ny, 0.7 + (i % 3) * 0.3, tema.nubes);
       }
     }
     var self = this;
     (tema.colinas || []).forEach(function (color, i) {
       var par = cam * (0.35 + i * 0.25);
       var base = R.ALTO - T - (i === 0 ? 40 : 10);
-      ctx.fillStyle = color;
-      ctx.beginPath(); ctx.moveTo(0, R.ALTO);
-      for (var x = 0; x <= R.ANCHO; x += 8) {
-        var wx = x + par;
-        var y = base - Math.abs(Math.sin(wx * 0.0038 + i * 1.3)) * (110 - i * 40) - Math.sin(wx * 0.013 + i) * 12;
-        ctx.lineTo(x, y);
+      function altura(wx) {
+        return base - Math.abs(Math.sin(wx * 0.0038 + i * 1.3)) * (110 - i * 40) - Math.sin(wx * 0.013 + i) * 12;
       }
+      var g = ctx.createLinearGradient(0, base - 150, 0, R.ALTO);
+      g.addColorStop(0, sombrear(color, 0.12)); g.addColorStop(1, color);
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.moveTo(0, R.ALTO);
+      for (var x = 0; x <= R.ANCHO; x += 8) ctx.lineTo(x, altura(x + par));
       ctx.lineTo(R.ANCHO, R.ALTO); ctx.closePath(); ctx.fill();
+      if (tema.decoracion === 'prado') self.arbolesLejanos(altura, par, i, color);
     });
   };
 
-  Renderer.prototype.nube = function (x, y, e) {
+  /* Arbolitos y arbustos redondos sobre las colinas (solo temas con "decoracion"). */
+  Renderer.prototype.arbolesLejanos = function (altura, par, capa, color) {
+    var ctx = this.ctx, paso = capa === 0 ? 150 : 110;
+    var primero = Math.floor(par / paso) - 1;
+    for (var k = primero; k <= primero + R.ANCHO / paso + 2; k++) {
+      var h = hash(k, 31 + capa);
+      if (h < 0.35) continue;
+      var wx = k * paso + h * 60, x = wx - par, y = altura(wx);
+      var esc = (capa === 0 ? 1 : 0.7) * (0.8 + h * 0.5);
+      if (h > 0.7) {
+        ctx.fillStyle = sombrear(color, -0.25); ctx.fillRect(x - 3 * esc, y - 18 * esc, 6 * esc, 20 * esc);
+        ctx.fillStyle = sombrear(color, -0.12);
+        ctx.beginPath(); ctx.arc(x, y - 30 * esc, 17 * esc, 0, Math.PI * 2); ctx.arc(x - 11 * esc, y - 20 * esc, 12 * esc, 0, Math.PI * 2); ctx.arc(x + 11 * esc, y - 20 * esc, 12 * esc, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = sombrear(color, 0.08);
+        ctx.beginPath(); ctx.arc(x - 5 * esc, y - 34 * esc, 8 * esc, 0, Math.PI * 2); ctx.fill();
+      } else {
+        ctx.fillStyle = sombrear(color, -0.15);
+        ctx.beginPath(); ctx.arc(x, y + 2, 14 * esc, Math.PI, 0); ctx.arc(x + 15 * esc, y + 2, 10 * esc, Math.PI, 0); ctx.fill();
+      }
+    }
+  };
+
+  Renderer.prototype.nube = function (x, y, e, color) {
     var ctx = this.ctx;
-    ctx.beginPath();
-    ctx.arc(x, y, 22 * e, 0, Math.PI * 2);
-    ctx.arc(x + 26 * e, y - 10 * e, 28 * e, 0, Math.PI * 2);
-    ctx.arc(x + 56 * e, y, 22 * e, 0, Math.PI * 2);
-    ctx.arc(x + 28 * e, y + 8 * e, 20 * e, 0, Math.PI * 2);
-    ctx.fill();
+    function forma(dy) {
+      ctx.beginPath();
+      ctx.arc(x, y + dy, 22 * e, 0, Math.PI * 2);
+      ctx.arc(x + 26 * e, y - 10 * e + dy, 28 * e, 0, Math.PI * 2);
+      ctx.arc(x + 56 * e, y + dy, 22 * e, 0, Math.PI * 2);
+      ctx.arc(x + 28 * e, y + 8 * e + dy, 20 * e, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(120,160,215,0.28)'; forma(5 * e);   // sombra de abajo
+    ctx.fillStyle = color; forma(0);
   };
 
   Renderer.prototype.tiles = function (nivel, tema, cam) {
@@ -274,26 +319,72 @@
   Renderer.prototype.suelo = function (x, y, tema, arriba, cx, cy) {
     var ctx = this.ctx;
     ctx.fillStyle = tema.sueloRelleno; ctx.fillRect(x, y, T, T);
+    ctx.fillStyle = 'rgba(0,0,0,0.10)'; ctx.fillRect(x, y + T - 10, T, 10);   // la tierra se oscurece abajo
     ctx.fillStyle = tema.sueloDetalle;
     for (var k = 0; k < 3; k++) {
       var rx = hash(cx * 3 + k, cy * 7 + 1), ry = hash(cy * 5 + k, cx * 11 + 3);
-      ctx.fillRect(x + 4 + rx * 34, y + 16 + ry * 26, 6, 4);
+      if (tema.decoracion && k === 0) {               // piedrita redonda con luz
+        ctx.beginPath(); ctx.ellipse(x + 8 + rx * 30, y + 24 + ry * 16, 5, 3.5, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.22)'; ctx.fillRect(x + 6 + rx * 30, y + 22 + ry * 16, 4, 1.5);
+        ctx.fillStyle = tema.sueloDetalle;
+      } else {
+        ctx.fillRect(x + 4 + rx * 34, y + 16 + ry * 26, 6, 4);
+      }
     }
     if (arriba) {
       ctx.fillStyle = tema.sueloTop; ctx.fillRect(x, y, T, 12);
+      ctx.fillStyle = sombrear(tema.sueloTop, 0.28); ctx.fillRect(x, y, T, 3);
+      ctx.fillStyle = sombrear(tema.sueloTop, -0.2); ctx.fillRect(x, y + 12, T, 2);
+      // flequillo de pasto que cae sobre la tierra
+      ctx.fillStyle = tema.sueloTop;
+      for (var f = 0; f < 4; f++) {
+        var fx = x + f * 12 + hash(cx + f, 5) * 4;
+        ctx.beginPath(); ctx.moveTo(fx, y + 12); ctx.lineTo(fx + 10, y + 12); ctx.lineTo(fx + 5, y + 19 + hash(cx, f) * 5); ctx.closePath(); ctx.fill();
+      }
+      // pastitos y, en los temas con decoración, flores
       ctx.fillStyle = sombrear(tema.sueloTop, 0.25);
       ctx.fillRect(x + 6 + hash(cx, 9) * 20, y - 5, 4, 6);
       ctx.fillRect(x + 28 + hash(cx, 4) * 12, y - 4, 4, 5);
-      ctx.fillStyle = sombrear(tema.sueloTop, -0.2); ctx.fillRect(x, y + 10, T, 3);
+      if (tema.decoracion === 'prado') {
+        var h = hash(cx, 77);
+        if (h < 0.22) this.flor(x + 8 + hash(cx, 78) * 30, y, h < 0.08 ? '#ff6b9a' : h < 0.15 ? '#ffffff' : '#ffd23f');
+        else if (h > 0.93) this.arbusto(x + 24, y);
+      }
     }
+  };
+
+  Renderer.prototype.flor = function (x, y, color) {
+    var ctx = this.ctx;
+    ctx.strokeStyle = '#3f8f3a'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x, y + 2); ctx.lineTo(x, y - 10); ctx.stroke();
+    ctx.fillStyle = color;
+    for (var i = 0; i < 5; i++) {
+      var a = i * Math.PI * 2 / 5;
+      ctx.beginPath(); ctx.arc(x + Math.cos(a) * 3.5, y - 12 + Math.sin(a) * 3.5, 2.6, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.fillStyle = '#ff9f1c'; ctx.beginPath(); ctx.arc(x, y - 12, 2, 0, Math.PI * 2); ctx.fill();
+  };
+
+  Renderer.prototype.arbusto = function (x, y) {
+    var ctx = this.ctx;
+    ctx.fillStyle = '#3f9a45';
+    ctx.beginPath(); ctx.arc(x - 9, y - 2, 10, Math.PI, 0); ctx.arc(x + 3, y - 2, 13, Math.PI, 0); ctx.arc(x + 15, y - 2, 9, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = '#5fc462';
+    ctx.beginPath(); ctx.arc(x - 1, y - 11, 5, 0, Math.PI * 2); ctx.fill();
   };
 
   Renderer.prototype.bloque = function (x, y, tema) {
     var ctx = this.ctx;
-    ctx.fillStyle = tema.bloque; ctx.fillRect(x, y, T, T);
-    ctx.fillStyle = tema.bloqueLuz; ctx.fillRect(x, y, T, 5); ctx.fillRect(x, y, 5, T);
-    ctx.fillStyle = tema.bloqueSombra; ctx.fillRect(x, y + T - 5, T, 5); ctx.fillRect(x + T - 5, y, 5, T);
-    ctx.fillStyle = 'rgba(0,0,0,0.12)'; ctx.fillRect(x + 12, y + 12, T - 24, T - 24);
+    ctx.fillStyle = tema.bloqueSombra; ctx.fillRect(x, y, T, T);
+    ctx.fillStyle = tema.bloque; rr(ctx, x + 2, y + 2, T - 4, T - 4, 6); ctx.fill();
+    ctx.fillStyle = tema.bloqueLuz; ctx.fillRect(x + 6, y + 3, T - 12, 4); ctx.fillRect(x + 3, y + 6, 4, T - 14);
+    ctx.fillStyle = tema.bloqueSombra; ctx.globalAlpha = 0.35;
+    ctx.fillRect(x + 10, y + 14, T - 20, 2); ctx.fillRect(x + 10, y + 24, T - 20, 2); ctx.fillRect(x + 10, y + 34, T - 20, 2);   // vetas de madera
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = tema.bloqueSombra;
+    [[8, 8], [T - 10, 8], [8, T - 10], [T - 10, T - 10]].forEach(function (c) {   // clavitos
+      ctx.beginPath(); ctx.arc(x + c[0], y + c[1], 1.8, 0, Math.PI * 2); ctx.fill();
+    });
   };
 
   Renderer.prototype.pinchos = function (x, y, tema) {

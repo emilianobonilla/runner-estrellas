@@ -43,6 +43,7 @@ RUNNER.registrarTema({
   checkpoint: '#4cc9f0',
   enemigo: '#8e5b3c',
   enemigoOjos: '#fff',
+  decoracion: 'prado',   // activa árboles, flores, arbustos y rayos de sol
   imagenes: {}
 });
 
