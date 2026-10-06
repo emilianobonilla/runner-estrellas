@@ -7,10 +7,10 @@
    la sala de la carrera (para ver que todos juegan la misma versión). */
 (function (R) {
   R.VERSION = {
-    numero: '1.9.0',              // lo sube la acción de GitHub en cada merge
-    nombre: 'Mejora los personajes, suma 9 nuevos y quita el selector de ',       // título del PR que trajo esta versión
+    numero: '1.10.0',              // lo sube la acción de GitHub en cada merge
+    nombre: 'Resumen de carrera multijugador: muestra cómo sigue en lugar',       // título del PR que trajo esta versión
     fecha: '2026-10-06',          // día en que se publicó
-    commit: '3405fd4',            // commit de main que generó la versión
+    commit: '9125024',            // commit de main que generó la versión
     repo: 'https://github.com/emilianobonilla/runner-estrellas'
   };
 
