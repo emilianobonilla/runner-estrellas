@@ -202,7 +202,37 @@
       '</div>');
   };
 
+  /* Borrador de la competencia que se está armando: un personaje distinto por jugador. */
+  var borrador = null;
+
+  function personajesLibres(salvoFila) {
+    var usados = borrador.jugadores.filter(function (j, i) { return i !== salvoFila; }).map(function (j) { return j.personaje; });
+    return R.personajes.filter(function (p) { return usados.indexOf(p.id) < 0; });
+  }
+  function leerNombres() {
+    cont.querySelectorAll('input[data-fila]').forEach(function (i) { borrador.jugadores[+i.dataset.fila].nombre = i.value; });
+  }
+  function pintarJugadores() {
+    var lista = document.getElementById('comp-lista'); if (!lista) return;
+    lista.innerHTML = borrador.jugadores.map(function (j, i) {
+      var per = personajePorId(j.personaje);
+      return '<div class="fila-jugador">' +
+        '<button type="button" class="personaje-sala sel" data-accion="compElegirPersonaje" data-arg="' + i + '" aria-label="Cambiar personaje de ' + esc(j.nombre || 'jugador ' + (i + 1)) + '">' +
+        '<canvas width="72" height="72" data-personaje="' + esc(per.id) + '"></canvas><span>' + esc(per.nombre) + '</span></button>' +
+        '<input type="text" maxlength="20" data-fila="' + i + '" placeholder="Jugador ' + (i + 1) + '" value="' + esc(j.nombre) + '">' +
+        (borrador.jugadores.length > 2 ? '<button type="button" class="btn chico peligro" data-accion="compQuitar" data-arg="' + i + '" aria-label="Quitar jugador">✕</button>' : '') +
+        '</div>';
+    }).join('');
+    lista.querySelectorAll('canvas[data-personaje]').forEach(function (cv) { R.app.dibujarPersonajeEn(cv, personajePorId(cv.dataset.personaje)); });
+    var agregar = document.getElementById('comp-agregar');
+    if (agregar) agregar.disabled = !personajesLibres(-1).length;
+  }
+
   UI.nuevaCompetencia = function () {
+    if (!borrador) {
+      var ids = R.personajes.map(function (p) { return p.id; });
+      borrador = { jugadores: [{ nombre: '', personaje: ids[0] }, { nombre: '', personaje: ids[1] || ids[0] }] };
+    }
     var chips = R.niveles.map(function (n) {
       return '<label class="chip sel"><input type="checkbox" name="niveles" value="' + esc(n.id) + '" checked> ' + esc(etiqueta(n)) + '</label>';
     }).join('');
@@ -211,10 +241,13 @@
       '<div class="barra-superior"><h2>Nueva competencia</h2>' + botonVolver('competencias', 'Competencias') + '</div>' +
       '<label class="campo"><span>Nombre de la competencia</span><input type="text" id="comp-nombre" maxlength="40" placeholder="Ej: Torneo de la clase 5°B" autofocus></label>' +
       '<label class="campo"><span>Niveles (tocá para activar o desactivar)</span></label><div class="opciones" id="comp-niveles">' + chips + '</div>' +
-      '<label class="campo" style="margin-top:18px"><span>Jugadores (uno por línea)</span><textarea id="comp-jugadores" placeholder="Ana&#10;Bruno&#10;Camila"></textarea></label>' +
+      '<h3>Jugadores</h3><p class="aviso">Cada jugador elige su personaje (no se pueden repetir).</p>' +
+      '<div id="comp-lista"></div>' +
+      '<button type="button" class="btn chico" id="comp-agregar" data-accion="compAgregar">＋ Agregar jugador</button>' +
       '<div id="comp-error" class="aviso" style="color:var(--peligro)"></div>' +
       '<div class="pie"><span></span><button class="btn principal" data-accion="crearCompetencia">Crear competencia</button></div>' +
       '</div>');
+    pintarJugadores();
   };
 
   UI.verCompetencia = function (id, mensaje) {
@@ -383,9 +416,42 @@
       '<button class="btn principal" data-accion="carreraCrear">📡 &nbsp;Crear sala</button>' +
       '<button class="btn" data-accion="carreraUnirse">🔢 &nbsp;Entrar</button>' +
       '</div>' +
-      '<p class="aviso" style="margin-top:16px"><b>' + esc(personajeActual().nombre) + '</b> · <a href="#" data-accion="personalizar" style="color:var(--acento2)">cambiar</a></p>' +
+      '<p class="aviso" style="margin-top:16px"><b>' + esc(personajeActual().nombre) + '</b> · <a href="#" data-accion="carreraCambiarPersonaje" style="color:var(--acento2)">cambiar</a></p>' +
       '</div>');
     UI.pantalla = 'carrera';
+  };
+
+  /* Selector de personaje en un modal: al elegir uno se guarda y se cierra,
+     sin pasar por Personalizar. */
+  UI.modalPersonaje = function (op) {
+    op = op || {};
+    var actual = op.actual || personajeActual().id, ocupados = op.ocupados || [];
+    var accion = op.accion || 'carreraPersonajeModal';
+    var botones = R.personajes.map(function (p) {
+      return '<button type="button" class="personaje-sala' + (p.id === actual ? ' sel' : '') + '"' +
+        ' data-accion="' + accion + '" data-arg="' + esc(p.id) + (op.extra !== undefined ? '|' + op.extra : '') + '" aria-pressed="' + (p.id === actual ? 'true' : 'false') + '"' +
+        ' aria-label="Elegir a ' + esc(p.nombre) + (ocupados.indexOf(p.id) >= 0 ? ' (ya lo usa otro jugador)' : '') + '"' + (ocupados.indexOf(p.id) >= 0 ? ' disabled' : '') + '>' +
+        '<canvas width="72" height="72" data-personaje="' + esc(p.id) + '"></canvas>' +
+        '<span>' + esc(p.nombre) + '</span></button>';
+    }).join('');
+    var m = document.createElement('div');
+    m.className = 'modal-fondo';
+    m.id = 'modal-personaje';
+    m.setAttribute('role', 'dialog');
+    m.setAttribute('aria-modal', 'true');
+    m.setAttribute('aria-label', 'Elegir personaje');
+    m.innerHTML = '<div class="panel modal-caja"><div class="barra-superior"><h3 style="margin:0">Personaje</h3>' +
+      '<button class="btn chico" data-accion="carreraCerrarModal" aria-label="Cerrar">✕</button></div>' +
+      '<div class="personajes-sala">' + botones + '</div></div>';
+    cont.appendChild(m);
+    m.querySelectorAll('canvas[data-personaje]').forEach(function (cv) {
+      var per = R.personajes.filter(function (p) { return p.id === cv.dataset.personaje; })[0];
+      if (per) R.app.dibujarPersonajeEn(cv, per);
+    });
+  };
+  UI.cerrarModalPersonaje = function () {
+    var m = document.getElementById('modal-personaje');
+    if (m) m.remove();
   };
 
   UI.carreraUnirse = function (error) {
@@ -660,17 +726,45 @@
       R.Storage.guardar(); repintarPersonalizar();
     },
 
-    nuevaCompetencia: function () { UI.nuevaCompetencia(); },
+    nuevaCompetencia: function () { borrador = null; UI.nuevaCompetencia(); },
+    compAgregar: function () {
+      leerNombres();
+      var libres = personajesLibres(-1); if (!libres.length) return;
+      borrador.jugadores.push({ nombre: '', personaje: libres[0].id });
+      pintarJugadores();
+    },
+    compQuitar: function (i) { leerNombres(); borrador.jugadores.splice(+i, 1); pintarJugadores(); },
+    compElegirPersonaje: function (i) {
+      leerNombres();
+      UI.modalPersonaje({
+        actual: borrador.jugadores[+i].personaje,
+        ocupados: borrador.jugadores.filter(function (j, n) { return n !== +i; }).map(function (j) { return j.personaje; }),
+        accion: 'compPersonajeModal', extra: i
+      });
+    },
+    compPersonajeModal: function (arg) {
+      var partes = arg.split('|');
+      borrador.jugadores[+partes[1]].personaje = partes[0];
+      UI.cerrarModalPersonaje();
+      pintarJugadores();
+    },
     crearCompetencia: function () {
+      leerNombres();
       var nombre = (document.getElementById('comp-nombre').value || '').trim();
       var niveles = Array.prototype.map.call(cont.querySelectorAll('input[name="niveles"]:checked'), function (i) { return i.value; });
-      var jugadores = document.getElementById('comp-jugadores').value.split('\n').map(function (s) { return s.trim(); }).filter(Boolean);
-      jugadores = jugadores.filter(function (j, i) { return jugadores.indexOf(j) === i; });
       var err = document.getElementById('comp-error');
+      var jugadores = [], elegidos = {}, repetido = false;
+      borrador.jugadores.forEach(function (j) {
+        var n = j.nombre.trim();
+        if (!n) return;
+        if (jugadores.indexOf(n) >= 0) repetido = true; else { jugadores.push(n); elegidos[n] = j.personaje; }
+      });
       if (!nombre) return err.textContent = 'Poné un nombre a la competencia.';
       if (!niveles.length) return err.textContent = 'Elegí al menos un nivel.';
+      if (repetido) return err.textContent = 'Hay jugadores con el mismo nombre.';
       if (jugadores.length < 2) return err.textContent = 'Agregá al menos dos jugadores.';
-      var c = R.Storage.crearCompetencia(nombre, niveles, jugadores);
+      var c = R.Storage.crearCompetencia(nombre, niveles, jugadores, elegidos);
+      borrador = null;
       UI.verCompetencia(c.id, '¡Competencia creada! Cada jugador toca "Jugar" en su turno.');
     },
     verCompetencia: function (id) { UI.verCompetencia(id); },
@@ -713,6 +807,14 @@
     carreraSalir: function () { R.Carrera.salir(); UI.carrera(); },
     carreraListo: function () { R.Carrera.alternarListo(); },
     carreraPersonaje: function (id) { R.Carrera.elegirPersonaje(id); },
+    carreraCambiarPersonaje: function () { UI.modalPersonaje(); },
+    carreraCerrarModal: function () { UI.cerrarModalPersonaje(); },
+    carreraPersonajeModal: function (id) {
+      datos().perfil.personaje = id;
+      R.Storage.guardar();
+      UI.cerrarModalPersonaje();
+      UI.carrera();   // el nombre ya se guarda al escribir
+    },
     carreraNivel: function (id) { R.Carrera.elegirNivel(id); },
 
     jugarTurno: function (arg) {
@@ -725,6 +827,7 @@
   /* Un solo camino de salida para el botón ←, la tecla Esc y el botón Atrás. */
   UI.volver = function () {
     if (cont.classList.contains('oculto')) return false;
+    if (document.getElementById('modal-personaje')) { UI.cerrarModalPersonaje(); return true; }
     var b = cont.querySelector('.btn.volver');
     if (!b || !acciones[b.dataset.accion]) return false;
     R.app.audio.clic();
@@ -781,7 +884,7 @@
   cont.addEventListener('keydown', function (e) {
     if (e.key === 'Enter' && e.target.id === 'carrera-codigo') { e.preventDefault(); acciones.carreraConectar(); return; }
     if (e.key === 'Enter' && e.target.matches('input[type="text"]') && e.target.id === 'comp-nombre') {
-      e.preventDefault(); document.getElementById('comp-jugadores').focus();
+      e.preventDefault(); var f = cont.querySelector('input[data-fila]'); if (f) f.focus();
     }
   });
 

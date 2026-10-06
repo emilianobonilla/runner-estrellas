@@ -179,6 +179,8 @@ input.codigo {
 .personaje-sala.sel { border-color: var(--acento); }
 .personaje-sala canvas { display: block; margin: 0 auto 2px; }
 .personaje-sala:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+.modal-fondo { position: fixed; inset: 0; z-index: 20; display: flex; padding: 16px; background: rgba(0,0,0,.6); }
+.modal-caja { --pad: 20px; width: min(520px, 100%); max-height: 100%; overflow: auto; }
 
 .mundos-sala { display: grid; gap: 8px; }
 .selector-mundo { background: var(--panel2); border-radius: 12px; overflow: hidden; }
@@ -326,3 +328,6 @@ table.tabla { width: 100%; border-collapse: collapse; margin-top: 8px; font-size
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+.fila-jugador { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.fila-jugador input { flex: 1; min-width: 0; }
+.fila-jugador .personaje-sala { flex: none; }
