@@ -49,9 +49,16 @@
     },
 
     crearCompetencia: function (nombre, niveles, jugadores) {
+      // Cada participante recibe un personaje distinto (se reparten al azar)
+      var ids = R.personajes.map(function (p) { return p.id; });
+      for (var i = ids.length - 1; i > 0; i--) {
+        var k = Math.floor(Math.random() * (i + 1)), t = ids[i]; ids[i] = ids[k]; ids[k] = t;
+      }
+      var personajes = {};
+      jugadores.forEach(function (j, n) { personajes[j] = ids[n % ids.length]; });
       var c = {
         id: R.uid(), nombre: nombre, creada: new Date().toISOString(),
-        niveles: niveles, jugadores: jugadores, resultados: {}
+        niveles: niveles, jugadores: jugadores, personajes: personajes, resultados: {}
       };
       this.datos.competencias.unshift(c);
       this.guardar();
@@ -61,6 +68,27 @@
     eliminarCompetencia: function (id) {
       this.datos.competencias = this.datos.competencias.filter(function (c) { return c.id !== id; });
       this.guardar();
+    },
+
+    /* Personaje de un jugador en la competencia (si no tiene asignado, uno por orden). */
+    personajeDe: function (c, jugador) {
+      var id = c.personajes && c.personajes[jugador];
+      if (!id || !R.personajes.some(function (p) { return p.id === id; })) {
+        id = R.personajes[Math.max(0, c.jugadores.indexOf(jugador)) % R.personajes.length].id;
+      }
+      return id;
+    },
+
+    /* Próximo turno sin resultado: nivel por nivel, y dentro de cada nivel jugador por jugador.
+       Así todos juegan la misma pantalla antes de pasar a la siguiente. */
+    proximoTurno: function (c) {
+      for (var n = 0; n < c.niveles.length; n++) {
+        if (!R.niveles.some(function (d) { return d.id === c.niveles[n]; })) continue;
+        for (var j = 0; j < c.jugadores.length; j++) {
+          if (!(c.resultados[c.jugadores[j]] || {})[c.niveles[n]]) return { jugador: c.jugadores[j], nivel: c.niveles[n] };
+        }
+      }
+      return null;
     },
 
     /* Guarda el resultado de un jugador en una competencia si mejora el anterior. */
@@ -81,7 +109,11 @@
         this.guardar();
         return 'nueva';
       }
-      importada.jugadores.forEach(function (j) { if (local.jugadores.indexOf(j) < 0) local.jugadores.push(j); });
+      local.personajes = local.personajes || {};
+      importada.jugadores.forEach(function (j) {
+        if (local.jugadores.indexOf(j) < 0) local.jugadores.push(j);
+        if (!local.personajes[j] && importada.personajes && importada.personajes[j]) local.personajes[j] = importada.personajes[j];
+      });
       importada.niveles.forEach(function (n) { if (local.niveles.indexOf(n) < 0) local.niveles.push(n); });
       Object.keys(importada.resultados || {}).forEach(function (j) {
         local.resultados[j] = local.resultados[j] || {};
