@@ -48,14 +48,19 @@
       return this.datos.competencias.filter(function (c) { return c.id === id; })[0] || null;
     },
 
-    crearCompetencia: function (nombre, niveles, jugadores) {
-      // Cada participante recibe un personaje distinto (se reparten al azar)
+    crearCompetencia: function (nombre, niveles, jugadores, elegidos) {
+      // Cada participante tiene un personaje distinto: el que eligió o, si no, uno al azar
       var ids = R.personajes.map(function (p) { return p.id; });
       for (var i = ids.length - 1; i > 0; i--) {
         var k = Math.floor(Math.random() * (i + 1)), t = ids[i]; ids[i] = ids[k]; ids[k] = t;
       }
       var personajes = {};
-      jugadores.forEach(function (j, n) { personajes[j] = ids[n % ids.length]; });
+      elegidos = elegidos || {};
+      var usados = jugadores.map(function (j) { return elegidos[j]; }).filter(Boolean);
+      var libres = ids.filter(function (id) { return usados.indexOf(id) < 0; });
+      jugadores.forEach(function (j, n) {
+        personajes[j] = elegidos[j] || (libres.length ? libres.shift() : ids[n % ids.length]);
+      });
       var c = {
         id: R.uid(), nombre: nombre, creada: new Date().toISOString(),
         niveles: niveles, jugadores: jugadores, personajes: personajes, resultados: {}
