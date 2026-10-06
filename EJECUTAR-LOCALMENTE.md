@@ -1,4 +1,4 @@
-# Ejecutar Runner de Estrellas localmente
+# Ejecutar Cazaestrellas localmente
 
 No hay dependencias, ni `npm install`, ni compilación. Solo necesitás un navegador moderno.
 

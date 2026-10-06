@@ -1,4 +1,4 @@
-# Runner de Estrellas
+# Cazaestrellas
 
 Juego de plataformas estilo *Mario Bros* / *Ika* (Plan Ceibal): el personaje corre,
 salta y junta estrellas hasta llegar a la bandera, esquivando pinchos, pozos y

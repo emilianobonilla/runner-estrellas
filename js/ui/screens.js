@@ -54,7 +54,7 @@
     var per = personajeActual();
     UI.mostrar(
       '<div class="panel angosto centrado">' +
-      '<h1 class="titulo">Runner de <span class="estrella">Estrellas</span></h1>' +
+      '<h1 class="titulo">Caza<span class="estrella">estrellas</span></h1>' +
       '<p class="subtitulo">Corré, saltá y juntá todas las estrellas</p>' +
       '<div class="botones">' +
       '<button class="btn principal" data-accion="jugar">▶ &nbsp;Jugar</button>' +

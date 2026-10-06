@@ -1,6 +1,6 @@
 {
-  "name": "Runner de Estrellas",
-  "short_name": "Runner",
+  "name": "Cazaestrellas",
+  "short_name": "Cazaestrellas",
   "description": "Corré, saltá y juntá todas las estrellas. Funciona sin internet.",
   "lang": "es",
   "start_url": ".",
