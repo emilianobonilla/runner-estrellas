@@ -91,12 +91,15 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add js/core/version.js index.html
           git commit -m "Versión $NUMERO — $TITULO"
-          git tag -a "v$NUMERO" -m "Versión $NUMERO — $TITULO"
           # Si mientras tanto entró otro commit a main, nos ponemos arriba y reintentamos
+          PUSH_OK=false
           for i in 1 2 3; do
-            git push origin HEAD:main && break
+            if git push origin HEAD:main; then PUSH_OK=true; break; fi
             git pull --rebase origin main
           done
+          $PUSH_OK || { echo "No se pudo publicar la versión en main después de 3 intentos"; exit 1; }
+          # La etiqueta se crea recién ahora: el rebase pudo haber cambiado el commit
+          git tag -a "v$NUMERO" -m "Versión $NUMERO — $TITULO"
           # GitHub puede rechazar transitoriamente la actualización de refs de
           # etiquetas aunque el commit anterior ya haya llegado a main. La
           # etiqueta se reintenta y se verifica para no dejar una versión sin

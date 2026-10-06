@@ -221,6 +221,7 @@
   }
   function continuar() { if (!partida) return; partida.continuar(); R.UI.ocultar(); input.reiniciar(); }
   function reiniciar(seguir) {
+    if (seguir && partida) vidas = partida.vidas;   // las vidas ya perdidas en este intento no se recuperan
     if (actual) iniciarPartida(seguir ? actual.nivelDef : actual.inicio || actual.nivelDef, actual.contexto, seguir);
   }
   /* Deja la partida sin avisarle a nadie (lo usa la revancha del anfitrión). */
