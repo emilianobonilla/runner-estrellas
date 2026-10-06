@@ -119,6 +119,15 @@
   });
 
   /* ---------- perfil ---------- */
+  function personajeDe(ctx) {
+    if (ctx && ctx.tipo === 'competencia') {
+      var c = R.Storage.competencia(ctx.id);
+      var id = c && R.Storage.personajeDe(c, ctx.jugador);
+      var p = R.personajes.filter(function (x) { return x.id === id; })[0];
+      if (p) return p;
+    }
+    return personajeActual();
+  }
   function personajeActual() {
     return R.personajes.filter(function (p) { return p.id === datos.perfil.personaje; })[0] || R.personajes[0];
   }
@@ -145,7 +154,7 @@
     pantallaCompletaAlJugar();
     R.UI.ocultar();
     partida = new R.Partida(nivelDef, {
-      personaje: personajeActual(), tema: temaPara(nivelDef), audio: audio, input: input,
+      personaje: personajeDe(contexto), tema: temaPara(nivelDef), audio: audio, input: input,
       nombre: contexto.nombre,
       vidas: vidas,
       infinitas: carrera,                                   // en la carrera se reaparece siempre
@@ -175,6 +184,12 @@
     var mejoro = false;
     if (ctx.tipo === 'competencia') mejoro = R.Storage.registrarResultadoCompetencia(ctx.id, ctx.jugador, res);
     if (ctx.tipo === 'carrera') { R.Carrera.terminar(res); return R.UI.resultadosCarrera(res); }
+    // En una competencia sigue el próximo jugador en el mismo nivel; recién cuando todos jugaron se pasa al siguiente
+    if (ctx.tipo === 'competencia') {
+      var c = R.Storage.competencia(ctx.id), t = c && R.Storage.proximoTurno(c);
+      if (!t) return R.UI.verCompetencia(ctx.id, '¡Todos jugaron todos los niveles!');
+      return R.UI.turnoCompetencia(c, t, res, mejoro);
+    }
     // Como en Mario: al pasar un nivel se sigue con el próximo sin volver a elegir
     var sig = res.completado && siguienteDe(res.nivelId, ctx);
     if (sig) return seguirConEl(sig, ctx, res);
@@ -272,7 +287,7 @@
     datos: datos, audio: audio, input: input,
     siguienteDe: siguienteDe, seguirYa: seguirYa, cancelarSeguir: cancelarSeguir,
     iniciarPartida: iniciarPartida, pausar: pausar, continuar: continuar, reiniciar: reiniciar, abandonar: abandonar,
-    personajeActual: personajeActual, temaPara: temaPara, actualizarTactil: actualizarTactil,
+    personajeActual: personajeActual, personajeDe: personajeDe, temaPara: temaPara, actualizarTactil: actualizarTactil,
     cortarPartida: cortarPartida,
     vidas: function () { return vidas; },
     esCarrera: esCarrera,

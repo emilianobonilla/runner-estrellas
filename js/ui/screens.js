@@ -231,7 +231,7 @@
         return '<td class="num celda-comp">' + (x ? '<b>' + x.puntos + '</b><small>⭐ ' + x.estrellas + ' · ' + R.formatearTiempo(x.tiempo) + (x.completado ? ' ✓' : '') + '</small>' : '<span class="suave">—</span>') + '<div style="margin-top:6px">' + boton + '</div></td>';
       }).join('');
       var medalla = t.total ? ['🥇', '🥈', '🥉'][i] || '' : '';
-      return '<tr' + (i === 0 && t.total ? ' class="destacado"' : '') + '><td class="pos">' + (i + 1) + '</td><td>' + medalla + ' ' + esc(t.jugador) + '</td>' + celdas + '<td class="num"><b>' + t.total + '</b><br><small class="suave">⭐ ' + t.estrellas + '</small></td></tr>';
+      return '<tr' + (i === 0 && t.total ? ' class="destacado"' : '') + '><td class="pos">' + (i + 1) + '</td><td>' + medalla + ' ' + esc(t.jugador) + '<br><small class="suave">' + esc(((R.personajes.filter(function (p) { return p.id === R.Storage.personajeDe(c, t.jugador); })[0]) || {}).nombre || '') + '</small></td>' + celdas + '<td class="num"><b>' + t.total + '</b><br><small class="suave">⭐ ' + t.estrellas + '</small></td></tr>';
     }).join('');
     UI.mostrar(
       '<div class="panel ancho">' +
@@ -297,6 +297,24 @@
       '<div class="botones">' +
       '<button class="btn principal" data-accion="reiniciar">↻ Jugar de nuevo</button>' +
       volver +
+      '</div></div>');
+  };
+
+  /* Entre turnos de una competencia: resultado del que terminó y a quién le toca. */
+  UI.turnoCompetencia = function (c, t, res, mejoro) {
+    var per = R.personajes.filter(function (p) { return p.id === R.Storage.personajeDe(c, t.jugador); })[0];
+    var def = nivel(t.nivel);
+    UI.mostrar(
+      '<div class="panel angosto centrado">' +
+      '<h2 style="font-size:30px">' + (res.completado ? '🎉 ' : '💀 ') + esc(res.nombre) + ': ' + res.puntos + ' puntos</h2>' +
+      '<p class="suave">' + esc((nivel(res.nivelId) || {}).nombre || '') + ' · ⭐ ' + res.estrellas + '/' + res.totalEstrellas +
+      (res.completado ? '' : ' · sin vidas') + '</p>' +
+      '<canvas width="120" height="130" data-personaje="' + esc(per.id) + '"></canvas>' +
+      '<p style="font-size:24px;margin:6px 0">Turno de <b>' + esc(t.jugador) + '</b></p>' +
+      '<p class="suave">' + esc(per.nombre) + ' · ' + esc(def ? etiqueta(def) : t.nivel) + '</p>' +
+      '<div class="botones">' +
+      '<button class="btn principal" data-accion="jugarTurno" data-arg="' + esc(JSON.stringify({ id: c.id, jugador: t.jugador, nivel: t.nivel })) + '" autofocus>▶ Jugar</button>' +
+      '<button class="btn" data-accion="verCompetencia" data-arg="' + esc(c.id) + '">🏁 Ver tabla</button>' +
       '</div></div>');
   };
 
