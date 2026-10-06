@@ -456,7 +456,7 @@
      colinas lejanas y luciérnagas flotando (las estalactitas las dibuja techoCueva). */
   Renderer.prototype.ambienteCueva = function (tema, cam) {
     var ctx = this.ctx, t = this.t;
-    var colores = ['#7a6cff', '#46d4ff', '#d77aff'];
+    var colores = ['#5a4fb0', '#2f8aa6', '#8f55b0'];
     (tema.colinas || []).forEach(function (color, i) {
       var par = cam * (0.35 + i * 0.25), paso = i === 0 ? 170 : 120;
       var base = R.ALTO - T - (i === 0 ? 40 : 10);
@@ -467,16 +467,14 @@
         var wx = k * paso + h * 70, x = wx - par;
         var y = base - Math.abs(Math.sin(wx * 0.0038 + i * 1.3)) * (110 - i * 40) - Math.sin(wx * 0.013 + i) * 12;
         var esc = (i === 0 ? 1 : 0.65) * (0.8 + h * 0.5), col = colores[Math.floor(h * 10) % 3];
-        var halo = ctx.createRadialGradient(x, y - 14 * esc, 2, x, y - 14 * esc, 46 * esc);
-        halo.addColorStop(0, 'rgba(140,200,255,0.30)'); halo.addColorStop(1, 'rgba(140,200,255,0)');
-        ctx.fillStyle = halo; ctx.fillRect(x - 46 * esc, y - 60 * esc, 92 * esc, 92 * esc);
-        ctx.globalAlpha = i === 0 ? 0.85 : 0.6;
-        [[-9, 22, 6], [0, 34, 8], [10, 18, 5]].forEach(function (c) {
-          ctx.fillStyle = col;
-          ctx.beginPath(); ctx.moveTo(x + (c[0] - c[2]) * esc, y + 2); ctx.lineTo(x + c[0] * esc, y - c[1] * esc); ctx.lineTo(x + (c[0] + c[2]) * esc, y + 2); ctx.closePath(); ctx.fill();
-          ctx.fillStyle = 'rgba(255,255,255,0.35)';
-          ctx.beginPath(); ctx.moveTo(x + c[0] * esc, y - c[1] * esc); ctx.lineTo(x + (c[0] + c[2]) * esc, y + 2); ctx.lineTo(x + c[0] * esc, y + 2); ctx.closePath(); ctx.fill();
-        });
+        // hongos gigantes de fondo: tallo + sombrero redondo, apagados y sin halo
+        ctx.globalAlpha = i === 0 ? 0.55 : 0.4;
+        ctx.fillStyle = sombrear(col, -0.35);
+        ctx.fillRect(x - 3 * esc, y - 16 * esc, 6 * esc, 18 * esc);
+        ctx.fillStyle = col;
+        ctx.beginPath(); ctx.ellipse(x, y - 18 * esc, 17 * esc, 12 * esc, 0, Math.PI, 0); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.25)';
+        ctx.beginPath(); ctx.arc(x - 6 * esc, y - 23 * esc, 2.5 * esc, 0, Math.PI * 2); ctx.arc(x + 5 * esc, y - 21 * esc, 2 * esc, 0, Math.PI * 2); ctx.fill();
         ctx.globalAlpha = 1;
       }
     });
@@ -489,21 +487,21 @@
     }
   };
 
+  /* Piedritas redondas brillantes sobre el piso (antes eran cristales triangulares, que se
+     confundían con los pinchos). Sin halo. */
   Renderer.prototype.cristal = function (x, y, color) {
-    var ctx = this.ctx, pulso = 0.3;
-    ctx.fillStyle = 'rgba(160,220,255,' + pulso + ')'; ctx.beginPath(); ctx.arc(x, y - 8, 15, 0, Math.PI * 2); ctx.fill();
-    [[-6, 12, 4], [0, 20, 5], [7, 10, 4]].forEach(function (c) {
+    var ctx = this.ctx;
+    [[-6, 4], [2, 6], [9, 3.5]].forEach(function (c) {
+      ctx.fillStyle = sombrear(color, -0.3);
+      ctx.beginPath(); ctx.arc(x + c[0], y - c[1] + 1, c[1], 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = color;
-      ctx.beginPath(); ctx.moveTo(x + c[0] - c[2], y + 1); ctx.lineTo(x + c[0], y - c[1]); ctx.lineTo(x + c[0] + c[2], y + 1); ctx.closePath(); ctx.fill();
-      ctx.fillStyle = 'rgba(255,255,255,0.5)';
-      ctx.beginPath(); ctx.moveTo(x + c[0], y - c[1]); ctx.lineTo(x + c[0] + c[2], y + 1); ctx.lineTo(x + c[0], y + 1); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.arc(x + c[0] - 1, y - c[1], c[1] * 0.75, 0, Math.PI * 2); ctx.fill();
     });
   };
 
   Renderer.prototype.hongo = function (x, y) {
     var ctx = this.ctx;
     ctx.fillStyle = '#d9d4f2'; ctx.fillRect(x - 2, y - 8, 4, 9);
-    ctx.fillStyle = 'rgba(120,255,220,0.25)'; ctx.beginPath(); ctx.arc(x, y - 10, 14, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = '#5ee6c8'; ctx.beginPath(); ctx.arc(x, y - 8, 9, Math.PI, 0); ctx.fill();
     ctx.fillStyle = 'rgba(255,255,255,0.7)';
     ctx.beginPath(); ctx.arc(x - 3, y - 12, 1.8, 0, Math.PI * 2); ctx.arc(x + 3, y - 11, 1.4, 0, Math.PI * 2); ctx.fill();
@@ -539,18 +537,15 @@
         ctx.fill();
       }
     }
-    // cristales que brillan sobre el piso del fondo
+    // bulbos redondos sobre el piso del fondo (sin halo ni formas puntiagudas)
     var par2 = cam * 0.7, W2 = 900;
     for (var k = 0; k < 7; k++) {
       var cx = ((k * 211 + 90 - par2) % W2 + W2) % W2 - 40, cy = R.ALTO - T + 2;
-      var brillo = 0.65;
-      ctx.globalAlpha = 0.18 * brillo;
-      ctx.fillStyle = tema.cristal; ctx.beginPath(); ctx.arc(cx, cy - 14, 34, 0, Math.PI * 2); ctx.fill();
-      ctx.globalAlpha = brillo + 0.2;
+      ctx.globalAlpha = 0.5;
       for (var j = -1; j <= 1; j++) {
-        var h = 20 - Math.abs(j) * 7 + hash(k, j + 4) * 8, bx = cx + j * 8;
-        ctx.fillStyle = j === 0 ? tema.cristal : sombrear(tema.cristal, -0.3);
-        ctx.beginPath(); ctx.moveTo(bx - 5, cy); ctx.lineTo(bx + j * 2, cy - h); ctx.lineTo(bx + 5, cy); ctx.closePath(); ctx.fill();
+        var r = 8 - Math.abs(j) * 2 + hash(k, j + 4) * 3, bx = cx + j * 12;
+        ctx.fillStyle = sombrear(tema.cristal, -0.55);
+        ctx.beginPath(); ctx.arc(bx, cy - r, r, 0, Math.PI * 2); ctx.fill();
       }
     }
     ctx.globalAlpha = 1;
