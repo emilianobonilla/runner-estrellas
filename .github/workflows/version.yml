@@ -89,7 +89,7 @@ jobs:
           TZ=America/Montevideo python3 herramientas/poner-version.py "$NUMERO" "$TITULO" "${GITHUB_SHA::7}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add js/core/version.js index.html
+          git add js/core/version.js index.html manifest.webmanifest
           git commit -m "Versión $NUMERO — $TITULO"
           # Si mientras tanto entró otro commit a main, nos ponemos arriba y reintentamos
           PUSH_OK=false

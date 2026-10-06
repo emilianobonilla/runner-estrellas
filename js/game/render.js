@@ -9,7 +9,11 @@
   R.imagen = function (src) {
     if (!src) return null;
     var im = cacheImg[src];
-    if (!im) { im = new Image(); im.src = src; cacheImg[src] = im; }
+    if (!im) {
+      // La versión en la URL evita ver imágenes viejas guardadas en caché tras actualizar
+      var v = R.VERSION && !/^data:/.test(src) ? (src.indexOf('?') < 0 ? '?' : '&') + 'v=' + R.VERSION.numero : '';
+      im = new Image(); im.src = src + v; cacheImg[src] = im;
+    }
     return im.complete && im.naturalWidth > 0 ? im : null;
   };
 
@@ -184,6 +188,7 @@
     this.fondo(p.tema, p.camara.x);
     ctx.save();
     ctx.translate(-cam, 0);
+    if (p.tema.decoracion === 'playa') this.aguaDeHuecos(p.nivel, cam);
     this.tiles(p.nivel, p.tema, cam);
     this.checkpoints(p);
     this.meta(p);
@@ -212,40 +217,254 @@
     }
 
     if (tema.sol) {
-      ctx.fillStyle = tema.sol; ctx.beginPath(); ctx.arc(R.ANCHO - 130, 84, 42, 0, Math.PI * 2); ctx.fill();
+      var sx = R.ANCHO - 130, sy = 84;
+      var halo = ctx.createRadialGradient(sx, sy, 20, sx, sy, 190);
+      halo.addColorStop(0, 'rgba(255,248,200,0.75)'); halo.addColorStop(1, 'rgba(255,248,200,0)');
+      ctx.fillStyle = halo; ctx.fillRect(sx - 190, sy - 190, 380, 380);
+      ctx.fillStyle = tema.sol; ctx.beginPath(); ctx.arc(sx, sy, 42, 0, Math.PI * 2); ctx.fill();
     }
     if (tema.nubes) {
-      ctx.fillStyle = tema.nubes;
       var par = cam * 0.2, W = 1400;
       for (var i = 0; i < 9; i++) {
         var nx = ((i * 197 + 60 - par) % W + W) % W - 150;
         var ny = 36 + (i * 61) % 150;
-        this.nube(nx, ny, 0.7 + (i % 3) * 0.3);
+        this.nube(nx, ny, 0.7 + (i % 3) * 0.3, tema.nubes);
       }
     }
     var self = this;
+    if (tema.ambiente === 'cueva') this.fondoCueva(tema, cam);
+    if (tema.decoracion === 'playa') this.mar(cam);
     (tema.colinas || []).forEach(function (color, i) {
       var par = cam * (0.35 + i * 0.25);
       var base = R.ALTO - T - (i === 0 ? 40 : 10);
-      ctx.fillStyle = color;
-      ctx.beginPath(); ctx.moveTo(0, R.ALTO);
-      for (var x = 0; x <= R.ANCHO; x += 8) {
-        var wx = x + par;
-        var y = base - Math.abs(Math.sin(wx * 0.0038 + i * 1.3)) * (110 - i * 40) - Math.sin(wx * 0.013 + i) * 12;
-        ctx.lineTo(x, y);
+      function altura(wx) {
+        return base - Math.abs(Math.sin(wx * 0.0038 + i * 1.3)) * (110 - i * 40) - Math.sin(wx * 0.013 + i) * 12;
       }
+      var g = ctx.createLinearGradient(0, base - 150, 0, R.ALTO);
+      g.addColorStop(0, sombrear(color, 0.12)); g.addColorStop(1, color);
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.moveTo(0, R.ALTO);
+      for (var x = 0; x <= R.ANCHO; x += 8) ctx.lineTo(x, altura(x + par));
       ctx.lineTo(R.ANCHO, R.ALTO); ctx.closePath(); ctx.fill();
+      if (tema.decoracion === 'prado') self.arbolesLejanos(altura, par, i, color);
+      if (tema.decoracion === 'playa' && i === 1) self.palmeras(par);
+    });
+    if (tema.ambiente === 'cueva') this.techoCueva(tema, cam);
+    if (tema.decoracion === 'cueva') this.ambienteCueva(tema, cam);
+  };
+
+  /* Ambiente de cueva (temas con decoracion 'cueva'): cristales brillantes sobre las
+     colinas lejanas y luciérnagas flotando (las estalactitas las dibuja techoCueva). */
+  Renderer.prototype.ambienteCueva = function (tema, cam) {
+    var ctx = this.ctx, t = this.t;
+    var colores = ['#7a6cff', '#46d4ff', '#d77aff'];
+    (tema.colinas || []).forEach(function (color, i) {
+      var par = cam * (0.35 + i * 0.25), paso = i === 0 ? 170 : 120;
+      var base = R.ALTO - T - (i === 0 ? 40 : 10);
+      var primero = Math.floor(par / paso) - 1;
+      for (var k = primero; k <= primero + R.ANCHO / paso + 2; k++) {
+        var h = hash(k, 53 + i);
+        if (h < 0.4) continue;
+        var wx = k * paso + h * 70, x = wx - par;
+        var y = base - Math.abs(Math.sin(wx * 0.0038 + i * 1.3)) * (110 - i * 40) - Math.sin(wx * 0.013 + i) * 12;
+        var esc = (i === 0 ? 1 : 0.65) * (0.8 + h * 0.5), col = colores[Math.floor(h * 10) % 3];
+        var halo = ctx.createRadialGradient(x, y - 14 * esc, 2, x, y - 14 * esc, 46 * esc);
+        halo.addColorStop(0, 'rgba(140,200,255,0.30)'); halo.addColorStop(1, 'rgba(140,200,255,0)');
+        ctx.fillStyle = halo; ctx.fillRect(x - 46 * esc, y - 60 * esc, 92 * esc, 92 * esc);
+        ctx.globalAlpha = i === 0 ? 0.85 : 0.6;
+        [[-9, 22, 6], [0, 34, 8], [10, 18, 5]].forEach(function (c) {
+          ctx.fillStyle = col;
+          ctx.beginPath(); ctx.moveTo(x + (c[0] - c[2]) * esc, y + 2); ctx.lineTo(x + c[0] * esc, y - c[1] * esc); ctx.lineTo(x + (c[0] + c[2]) * esc, y + 2); ctx.closePath(); ctx.fill();
+          ctx.fillStyle = 'rgba(255,255,255,0.35)';
+          ctx.beginPath(); ctx.moveTo(x + c[0] * esc, y - c[1] * esc); ctx.lineTo(x + (c[0] + c[2]) * esc, y + 2); ctx.lineTo(x + c[0] * esc, y + 2); ctx.closePath(); ctx.fill();
+        });
+        ctx.globalAlpha = 1;
+      }
+    });
+    for (var j = 0; j < 16; j++) {      // luciérnagas: titilan y se mueven despacio
+      var fx = ((j * 211 + 40 - cam * 0.6 + 0) % (R.ANCHO + 60) + R.ANCHO + 60) % (R.ANCHO + 60) - 30;
+      var fy = 90 + (j * 53) % 270;
+      var br = 0.7;
+      ctx.fillStyle = 'rgba(200,255,120,' + (0.18 * br) + ')'; ctx.beginPath(); ctx.arc(fx, fy, 7, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(230,255,160,' + br + ')'; ctx.beginPath(); ctx.arc(fx, fy, 2, 0, Math.PI * 2); ctx.fill();
+    }
+  };
+
+  Renderer.prototype.cristal = function (x, y, color) {
+    var ctx = this.ctx, pulso = 0.3;
+    ctx.fillStyle = 'rgba(160,220,255,' + pulso + ')'; ctx.beginPath(); ctx.arc(x, y - 8, 15, 0, Math.PI * 2); ctx.fill();
+    [[-6, 12, 4], [0, 20, 5], [7, 10, 4]].forEach(function (c) {
+      ctx.fillStyle = color;
+      ctx.beginPath(); ctx.moveTo(x + c[0] - c[2], y + 1); ctx.lineTo(x + c[0], y - c[1]); ctx.lineTo(x + c[0] + c[2], y + 1); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.beginPath(); ctx.moveTo(x + c[0], y - c[1]); ctx.lineTo(x + c[0] + c[2], y + 1); ctx.lineTo(x + c[0], y + 1); ctx.closePath(); ctx.fill();
     });
   };
 
-  Renderer.prototype.nube = function (x, y, e) {
+  Renderer.prototype.hongo = function (x, y) {
     var ctx = this.ctx;
+    ctx.fillStyle = '#d9d4f2'; ctx.fillRect(x - 2, y - 8, 4, 9);
+    ctx.fillStyle = 'rgba(120,255,220,0.25)'; ctx.beginPath(); ctx.arc(x, y - 10, 14, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#5ee6c8'; ctx.beginPath(); ctx.arc(x, y - 8, 9, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.beginPath(); ctx.arc(x - 3, y - 12, 1.8, 0, Math.PI * 2); ctx.arc(x + 3, y - 11, 1.4, 0, Math.PI * 2); ctx.fill();
+  };
+
+  // Cueva: polvillo brillante al fondo (se dibuja antes de las colinas)
+  Renderer.prototype.fondoCueva = function (tema, cam) {
+    var ctx = this.ctx, W = 1100, par = cam * 0.12;
+    for (var i = 0; i < 26; i++) {
+      var x = ((i * 233 + 40 - par) % W + W) % W - 60;
+      var y = 30 + hash(i, 5) * (R.ALTO - 120);
+      var r = 1 + hash(i, 8) * 1.8;
+      ctx.globalAlpha = 0.45;
+      ctx.fillStyle = tema.cristal || '#fff';
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  };
+
+  // Cueva: estalactitas colgando del techo y cristales luminosos entre las rocas
+  Renderer.prototype.techoCueva = function (tema, cam) {
+    var ctx = this.ctx;
+    for (var capa = 0; capa < 2; capa++) {
+      var par = cam * (0.5 + capa * 0.3), paso = 150 - capa * 30, W = paso * 12;
+      ctx.fillStyle = capa === 0 ? sombrear(tema.colinas[0], -0.35) : sombrear(tema.colinas[0], -0.6);
+      for (var i = 0; i < 12; i++) {
+        var x = ((i * paso + capa * 61 - par) % W + W) % W - paso;
+        var largo = 40 + hash(i, 3 + capa) * 80 - capa * 10, ancho = 26 + hash(i, 7) * 22;
+        ctx.beginPath();
+        ctx.moveTo(x - ancho / 2, -2); ctx.lineTo(x + ancho / 2, -2);
+        ctx.quadraticCurveTo(x + 3, largo * 0.6, x, largo);
+        ctx.quadraticCurveTo(x - 3, largo * 0.6, x - ancho / 2, -2);
+        ctx.fill();
+      }
+    }
+    // cristales que brillan sobre el piso del fondo
+    var par2 = cam * 0.7, W2 = 900;
+    for (var k = 0; k < 7; k++) {
+      var cx = ((k * 211 + 90 - par2) % W2 + W2) % W2 - 40, cy = R.ALTO - T + 2;
+      var brillo = 0.65;
+      ctx.globalAlpha = 0.18 * brillo;
+      ctx.fillStyle = tema.cristal; ctx.beginPath(); ctx.arc(cx, cy - 14, 34, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = brillo + 0.2;
+      for (var j = -1; j <= 1; j++) {
+        var h = 20 - Math.abs(j) * 7 + hash(k, j + 4) * 8, bx = cx + j * 8;
+        ctx.fillStyle = j === 0 ? tema.cristal : sombrear(tema.cristal, -0.3);
+        ctx.beginPath(); ctx.moveTo(bx - 5, cy); ctx.lineTo(bx + j * 2, cy - h); ctx.lineTo(bx + 5, cy); ctx.closePath(); ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+  };
+
+  /* Arbolitos y arbustos redondos sobre las colinas (solo temas con "decoracion"). */
+  Renderer.prototype.arbolesLejanos = function (altura, par, capa, color) {
+    var ctx = this.ctx, paso = capa === 0 ? 150 : 110;
+    var primero = Math.floor(par / paso) - 1;
+    for (var k = primero; k <= primero + R.ANCHO / paso + 2; k++) {
+      var h = hash(k, 31 + capa);
+      if (h < 0.6) continue;
+      var wx = k * paso + h * 60, x = wx - par, y = altura(wx);
+      var esc = (capa === 0 ? 1 : 0.7) * (0.8 + h * 0.5);
+      if (h > 0.7) {
+        ctx.fillStyle = sombrear(color, -0.25); ctx.fillRect(x - 3 * esc, y - 18 * esc, 6 * esc, 20 * esc);
+        ctx.fillStyle = sombrear(color, -0.12);
+        ctx.beginPath(); ctx.arc(x, y - 30 * esc, 17 * esc, 0, Math.PI * 2); ctx.arc(x - 11 * esc, y - 20 * esc, 12 * esc, 0, Math.PI * 2); ctx.arc(x + 11 * esc, y - 20 * esc, 12 * esc, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = sombrear(color, 0.08);
+        ctx.beginPath(); ctx.arc(x - 5 * esc, y - 34 * esc, 8 * esc, 0, Math.PI * 2); ctx.fill();
+      } else {
+        ctx.fillStyle = sombrear(color, -0.15);
+        ctx.beginPath(); ctx.arc(x, y + 2, 14 * esc, Math.PI, 0); ctx.arc(x + 15 * esc, y + 2, 10 * esc, Math.PI, 0); ctx.fill();
+      }
+    }
+  };
+
+  /* Mar al horizonte con brillos y un velero lejano (temas con decoracion 'playa'). */
+  Renderer.prototype.mar = function (cam) {
+    var ctx = this.ctx, y0 = R.ALTO - 210;
+    var g = ctx.createLinearGradient(0, y0, 0, R.ALTO - T);
+    g.addColorStop(0, '#1fa9d6'); g.addColorStop(1, '#5fd3e6');
+    ctx.fillStyle = g; ctx.fillRect(0, y0, R.ANCHO, R.ALTO - T - y0);
+    ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.fillRect(0, y0, R.ANCHO, 2);
+    var par = cam * 0.12;
+    for (var i = 0; i < 26; i++) {
+      var x = ((i * 83 + hash(i, 5) * 40 - par) % (R.ANCHO + 80) + R.ANCHO + 80) % (R.ANCHO + 80) - 40;
+      var y = y0 + 10 + (i * 37) % 140;
+      var brillo = 0.4;
+      ctx.fillStyle = 'rgba(255,255,255,' + brillo.toFixed(2) + ')';
+      ctx.fillRect(x, y, 14 + hash(i, 8) * 14, 2);
+    }
+    // velero
+    var vx = ((620 - cam * 0.06) % (R.ANCHO + 200) + R.ANCHO + 200) % (R.ANCHO + 200) - 100;
+    var vy = y0 + 2;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.moveTo(vx, vy - 4); ctx.lineTo(vx, vy - 40); ctx.lineTo(vx + 24, vy - 4); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#ff7b54';
+    ctx.beginPath(); ctx.moveTo(vx - 4, vy - 4); ctx.lineTo(vx - 4, vy - 28); ctx.lineTo(vx - 20, vy - 4); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#7a4a2a'; ctx.fillRect(vx - 22, vy - 4, 50, 5);
+  };
+
+  /* Palmeras sobre la duna del medio. */
+  Renderer.prototype.palmeras = function (par) {
+    var ctx = this.ctx, paso = 330;
+    var primero = Math.floor(par / paso) - 1;
+    for (var k = primero; k <= primero + R.ANCHO / paso + 2; k++) {
+      var h = hash(k, 77);
+      if (h < 0.25) continue;
+      var x = k * paso + h * 90 - par;
+      var base = R.ALTO - T - 6, alto = 120 + h * 50, esc = 0.85 + h * 0.3;
+      var sw = 0;
+      ctx.strokeStyle = '#8a5a2b'; ctx.lineWidth = 9 * esc; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(x, base); ctx.quadraticCurveTo(x + 22, base - alto * 0.55, x + 12 + sw, base - alto); ctx.stroke();
+      ctx.strokeStyle = 'rgba(0,0,0,0.18)'; ctx.lineWidth = 2;
+      for (var a = 1; a < 6; a++) {
+        var ty = base - alto * a / 6; ctx.beginPath(); ctx.moveTo(x + 4 + a, ty); ctx.lineTo(x + 14 + a, ty); ctx.stroke();
+      }
+      var cx = x + 12 + sw, cy = base - alto;
+      ctx.fillStyle = '#2e9e57';
+      for (var f = 0; f < 6; f++) {
+        var ang = -Math.PI / 2 + (f - 2.5) * 0.62;
+        var lx = cx + Math.cos(ang) * 58 * esc, ly = cy + Math.sin(ang) * 34 * esc + 22 * esc;
+        ctx.beginPath(); ctx.moveTo(cx, cy);
+        ctx.quadraticCurveTo(cx + Math.cos(ang) * 30 * esc, cy + Math.sin(ang) * 42 * esc - 8, lx, ly);
+        ctx.quadraticCurveTo(cx + Math.cos(ang) * 30 * esc, cy + Math.sin(ang) * 42 * esc + 6, cx, cy);
+        ctx.fill();
+      }
+      ctx.fillStyle = '#6b4220';
+      ctx.beginPath(); ctx.arc(cx - 3, cy + 5, 4, 0, Math.PI * 2); ctx.arc(cx + 4, cy + 6, 4, 0, Math.PI * 2); ctx.fill();
+    }
+  };
+
+  /* Agua con espuma en el fondo de los huecos (en coordenadas del mundo). */
+  Renderer.prototype.aguaDeHuecos = function (nivel, cam) {
+    var ctx = this.ctx, y = (nivel.filas - 1) * T + 14;
+    var g = ctx.createLinearGradient(0, y, 0, y + T);
+    g.addColorStop(0, '#2bb8de'); g.addColorStop(1, '#0f86b8');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.moveTo(cam - 10, y + T);
+    for (var x = cam - 10; x <= cam + R.ANCHO + 10; x += 8) ctx.lineTo(x, y + Math.sin(x * 0.05) * 3);
+    ctx.lineTo(cam + R.ANCHO + 10, y + T); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 3; ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.arc(x, y, 22 * e, 0, Math.PI * 2);
-    ctx.arc(x + 26 * e, y - 10 * e, 28 * e, 0, Math.PI * 2);
-    ctx.arc(x + 56 * e, y, 22 * e, 0, Math.PI * 2);
-    ctx.arc(x + 28 * e, y + 8 * e, 20 * e, 0, Math.PI * 2);
-    ctx.fill();
+    for (var x2 = cam - 10; x2 <= cam + R.ANCHO + 10; x2 += 8) {
+      var yy = y + Math.sin(x2 * 0.05) * 3;
+      if (x2 === cam - 10) ctx.moveTo(x2, yy); else ctx.lineTo(x2, yy);
+    }
+    ctx.stroke();
+  };
+
+  Renderer.prototype.nube = function (x, y, e, color) {
+    var ctx = this.ctx;
+    function forma(dy) {
+      ctx.beginPath();
+      ctx.arc(x, y + dy, 22 * e, 0, Math.PI * 2);
+      ctx.arc(x + 26 * e, y - 10 * e + dy, 28 * e, 0, Math.PI * 2);
+      ctx.arc(x + 56 * e, y + dy, 22 * e, 0, Math.PI * 2);
+      ctx.arc(x + 28 * e, y + 8 * e + dy, 20 * e, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(120,160,215,0.28)'; forma(5 * e);   // sombra de abajo
+    ctx.fillStyle = color; forma(0);
   };
 
   Renderer.prototype.tiles = function (nivel, tema, cam) {
@@ -274,26 +493,97 @@
   Renderer.prototype.suelo = function (x, y, tema, arriba, cx, cy) {
     var ctx = this.ctx;
     ctx.fillStyle = tema.sueloRelleno; ctx.fillRect(x, y, T, T);
+    ctx.fillStyle = 'rgba(0,0,0,0.10)'; ctx.fillRect(x, y + T - 10, T, 10);   // la tierra se oscurece abajo
     ctx.fillStyle = tema.sueloDetalle;
     for (var k = 0; k < 3; k++) {
       var rx = hash(cx * 3 + k, cy * 7 + 1), ry = hash(cy * 5 + k, cx * 11 + 3);
       ctx.fillRect(x + 4 + rx * 34, y + 16 + ry * 26, 6, 4);
     }
+    if (tema.ambiente === 'cueva') {
+      ctx.strokeStyle = sombrear(tema.sueloRelleno, 0.18); ctx.lineWidth = 2;
+      var vx = x + 6 + hash(cx, cy) * 20;
+      ctx.beginPath(); ctx.moveTo(vx, y + 14); ctx.lineTo(vx + 10, y + 26); ctx.lineTo(vx + 4, y + 40); ctx.stroke();
+      if (hash(cx, cy + 9) > 0.8) { ctx.fillStyle = tema.cristal; ctx.globalAlpha = 0.8; ctx.fillRect(x + 30, y + 30, 4, 4); ctx.globalAlpha = 1; }
+    }
     if (arriba) {
       ctx.fillStyle = tema.sueloTop; ctx.fillRect(x, y, T, 12);
+      ctx.fillStyle = sombrear(tema.sueloTop, 0.28); ctx.fillRect(x, y, T, 3);
+      ctx.fillStyle = sombrear(tema.sueloTop, -0.2); ctx.fillRect(x, y + 12, T, 2);
+      // flequillo de pasto que cae sobre la tierra
+      ctx.fillStyle = tema.sueloTop;
+      for (var f = 0; f < 4; f++) {
+        var fx = x + f * 12 + hash(cx + f, 5) * 4;
+        ctx.beginPath(); ctx.moveTo(fx, y + 12); ctx.lineTo(fx + 10, y + 12); ctx.lineTo(fx + 5, y + 19 + hash(cx, f) * 5); ctx.closePath(); ctx.fill();
+      }
+      // pastitos y arbustos
       ctx.fillStyle = sombrear(tema.sueloTop, 0.25);
       ctx.fillRect(x + 6 + hash(cx, 9) * 20, y - 5, 4, 6);
       ctx.fillRect(x + 28 + hash(cx, 4) * 12, y - 4, 4, 5);
-      ctx.fillStyle = sombrear(tema.sueloTop, -0.2); ctx.fillRect(x, y + 10, T, 3);
+      if (tema.decoracion === 'prado') {
+        if (hash(cx, 77) > 0.93) this.arbusto(x + 24, y);   // sin flores amarillas: se confunden con las estrellas
+      }
+      if (tema.decoracion === 'cueva') {
+        var hc = hash(cx, 77);
+        ctx.fillStyle = 'rgba(120,255,220,0.32)'; ctx.fillRect(x, y + 13, T, 2);      // musgo que brilla en el borde
+        if (hc < 0.28) this.cristal(x + 10 + hash(cx, 78) * 26, y, hc < 0.1 ? '#d77aff' : hc < 0.2 ? '#46d4ff' : '#8f86ff');
+        else if (hc > 0.9) this.hongo(x + 24, y);
+      }
+      if (tema.decoracion === 'playa') this.detallePlaya(x, y, cx);
     }
+  };
+
+  /* Conchitas, estrellas de mar y granitos sobre la arena. */
+  Renderer.prototype.detallePlaya = function (x, y, cx) {
+    var ctx = this.ctx, h = hash(cx, 21);
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.fillRect(x + 8 + hash(cx, 2) * 30, y + 4, 3, 2);
+    ctx.fillRect(x + 4 + hash(cx, 3) * 36, y + 8, 2, 2);
+    if (h > 0.82) {          // estrella de mar
+      R.dibujarEstrella(ctx, x + 12 + h * 20, y - 3, 6, 0.3, '#ff7b54', '#d9532e');
+    } else if (h < 0.14) {   // caracol
+      ctx.fillStyle = '#fff3e0'; ctx.strokeStyle = '#e0a98a'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(x + 24, y - 1, 6, Math.PI, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x + 24, y - 6); ctx.lineTo(x + 24, y - 1); ctx.stroke();
+    }
+  };
+
+  Renderer.prototype.flor = function (x, y, color) {
+    var ctx = this.ctx;
+    ctx.strokeStyle = '#3f8f3a'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x, y + 2); ctx.lineTo(x, y - 10); ctx.stroke();
+    ctx.fillStyle = color;
+    for (var i = 0; i < 5; i++) {
+      var a = i * Math.PI * 2 / 5;
+      ctx.beginPath(); ctx.arc(x + Math.cos(a) * 3.5, y - 12 + Math.sin(a) * 3.5, 2.6, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.fillStyle = '#ff9f1c'; ctx.beginPath(); ctx.arc(x, y - 12, 2, 0, Math.PI * 2); ctx.fill();
+  };
+
+  Renderer.prototype.arbusto = function (x, y) {
+    var ctx = this.ctx;
+    ctx.fillStyle = '#3f9a45';
+    ctx.beginPath(); ctx.arc(x - 9, y - 2, 10, Math.PI, 0); ctx.arc(x + 3, y - 2, 13, Math.PI, 0); ctx.arc(x + 15, y - 2, 9, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = '#5fc462';
+    ctx.beginPath(); ctx.arc(x - 1, y - 11, 5, 0, Math.PI * 2); ctx.fill();
   };
 
   Renderer.prototype.bloque = function (x, y, tema) {
     var ctx = this.ctx;
-    ctx.fillStyle = tema.bloque; ctx.fillRect(x, y, T, T);
-    ctx.fillStyle = tema.bloqueLuz; ctx.fillRect(x, y, T, 5); ctx.fillRect(x, y, 5, T);
-    ctx.fillStyle = tema.bloqueSombra; ctx.fillRect(x, y + T - 5, T, 5); ctx.fillRect(x + T - 5, y, 5, T);
-    ctx.fillStyle = 'rgba(0,0,0,0.12)'; ctx.fillRect(x + 12, y + 12, T - 24, T - 24);
+    ctx.fillStyle = tema.bloqueSombra; ctx.fillRect(x, y, T, T);
+    ctx.fillStyle = tema.bloque; rr(ctx, x + 2, y + 2, T - 4, T - 4, 6); ctx.fill();
+    ctx.fillStyle = tema.bloqueLuz; ctx.fillRect(x + 6, y + 3, T - 12, 4); ctx.fillRect(x + 3, y + 6, 4, T - 14);
+    ctx.fillStyle = tema.bloqueSombra; ctx.globalAlpha = 0.35;
+    ctx.fillRect(x + 10, y + 14, T - 20, 2); ctx.fillRect(x + 10, y + 24, T - 20, 2); ctx.fillRect(x + 10, y + 34, T - 20, 2);   // vetas de madera
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = tema.bloqueSombra;
+    [[8, 8], [T - 10, 8], [8, T - 10], [T - 10, T - 10]].forEach(function (c) {   // clavitos
+      ctx.beginPath(); ctx.arc(x + c[0], y + c[1], 1.8, 0, Math.PI * 2); ctx.fill();
+    });
+    if (tema.ambiente === 'cueva') {   // brillo de cristal en una esquina
+      ctx.fillStyle = tema.cristal; ctx.globalAlpha = 0.65;
+      ctx.beginPath(); ctx.moveTo(x + 24, y + 14); ctx.lineTo(x + 30, y + 24); ctx.lineTo(x + 24, y + 34); ctx.lineTo(x + 18, y + 24); ctx.closePath(); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
   };
 
   Renderer.prototype.pinchos = function (x, y, tema) {
@@ -316,7 +606,7 @@
       var y = e.y + Math.sin(this.t * 3 + e.fase) * 4;
       if (img) { ctx.drawImage(img, e.x - 16, y - 16, 32, 32); continue; }
       ctx.fillStyle = 'rgba(255,255,255,0.22)';
-      ctx.beginPath(); ctx.arc(e.x, y, 20 + Math.sin(this.t * 5 + e.fase) * 2, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(e.x, y, 20, 0, Math.PI * 2); ctx.fill();
       R.dibujarEstrella(ctx, e.x, y, e.r, Math.sin(this.t * 2 + e.fase) * 0.25, tema.estrella, tema.estrellaBorde);
     }
   };

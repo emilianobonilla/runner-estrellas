@@ -106,7 +106,11 @@
     versionEl.title = 'Estás jugando la ' + R.versionTexto() + '. Tocá para cargar la v' + numero + '.';
     versionEl.classList.add('nueva');
     versionEl.removeAttribute('target');
-    versionEl.onclick = function (e) { e.preventDefault(); location.reload(); };
+    versionEl.onclick = function (e) {
+      e.preventDefault();
+      // Se cambia la URL para que el navegador pida de nuevo el index.html (y con él los ?v= nuevos)
+      location.replace(location.pathname + '?actualizar=' + Date.now());
+    };
   }
   R.buscarVersionNueva(hayVersionNueva);
   // Y cada vez que se vuelve a la pestaña (por si quedó abierta de otro día)

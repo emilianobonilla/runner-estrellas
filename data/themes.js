@@ -43,13 +43,14 @@ RUNNER.registrarTema({
   checkpoint: '#4cc9f0',
   enemigo: '#8e5b3c',
   enemigoOjos: '#fff',
+  decoracion: 'prado',   // activa árboles, flores, arbustos y rayos de sol
   imagenes: {}
 });
 
 RUNNER.registrarTema({
   id: 'cueva',
   nombre: 'Cueva misteriosa',
-  cielo: ['#141a2b', '#2b2f52'],
+  cielo: ['#0c1022', '#2a2c55'],
   sol: null,
   nubes: null,
   colinas: ['#2f3450', '#22263d'],
@@ -68,6 +69,9 @@ RUNNER.registrarTema({
   checkpoint: '#c3ff7a',
   enemigo: '#5c4a9e',
   enemigoOjos: '#e8ff5a',
+  ambiente: 'cueva',   // estalactitas, cristales y roca con vetas (ver render.js)
+  cristal: '#7cf0ff',
+  decoracion: 'cueva',   // activa estalactitas, cristales, hongos brillantes y luciérnagas
   imagenes: {}
 });
 
@@ -143,6 +147,7 @@ RUNNER.registrarTema({
   checkpoint: '#00c2a8',
   enemigo: '#ef6f4b',
   enemigoOjos: '#fff',
+  decoracion: 'playa',   // activa mar, velero, palmeras, agua en los huecos y conchitas
   imagenes: {}
 });
 
