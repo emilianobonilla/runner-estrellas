@@ -34,6 +34,9 @@ El personaje puede retroceder un poco, pero la pantalla nunca vuelve atrás.
 
 **Puntos:** estrella 100 · pisar enemigo 50 a 120 (según el tipo) · meta 500 · bonus por
 tiempo y por juntar todas las estrellas.
+El puntaje es **acumulado en todo el recorrido** (las 3 vidas): el HUD muestra el total y el
+ranking de cada nivel sigue guardando solo lo de ese nivel. "Reiniciar nivel" vuelve al total
+que tenías al empezarlo.
 
 **Vidas:** son 3 para toda la partida, no por nivel: lo que sobra al terminar un nivel se
 lleva al siguiente. Vuelven a 3 al empezar un recorrido nuevo (elegir un nivel en el menú,

@@ -307,7 +307,7 @@
       filas += '<li><span>⏱ Bonus de tiempo (' + R.formatearTiempo(res.tiempo) + ')</span><b>' + d.bonusTiempo + '</b></li>';
       if (d.bonusTodas) filas += '<li><span>🌟 ¡Todas las estrellas!</span><b>' + d.bonusTodas + '</b></li>';
     }
-    filas += '<li class="total"><span>Total</span><b>' + res.puntos + '</b></li>';
+    filas += '<li class="total"><span>' + (res.total !== res.puntos ? 'Este nivel' : 'Total') + '</span><b>' + res.puntos + '</b></li>';
     // Las vidas son de toda la partida: conviene ver con cuántas se sigue
     var vidasTexto = res.completado
       ? '🏆 ¡Terminaste todos los niveles!'
@@ -321,7 +321,8 @@
       '<div class="panel angosto centrado">' +
       '<h2 style="font-size:34px">' + (res.completado ? '🎉 ¡Nivel completado!' : '💀 Fin del juego') + '</h2>' +
       '<p class="suave">' + esc(res.nombre || nombreJugador()) + ' · ' + esc((nivel(res.nivelId) || {}).nombre || '') + '</p>' +
-      '<div class="gran-numero">' + res.puntos + '</div>' +
+      '<div class="gran-numero">' + res.total + '</div>' +
+      (res.total !== res.puntos ? '<p class="suave">Total del recorrido</p>' : '') +
       (esRecord ? '<span class="etiqueta-record">🏆 ¡Récord del nivel!</span>' : '') +
       (ctx.tipo === 'competencia' && mejoro ? '<p class="suave">Resultado guardado en la competencia.</p>' : '') +
       (ctx.tipo === 'competencia' && !mejoro ? '<p class="suave">No superaste tu mejor puntaje en la competencia.</p>' : '') +
@@ -357,7 +358,7 @@
       '<div class="panel angosto centrado">' +
       '<h2 style="font-size:32px">🎉 ¡Nivel completado!</h2>' +
       '<p class="suave">' + esc((nivel(res.nivelId) || {}).nombre || '') + ' · ' + res.puntos + ' puntos · ⭐ ' + res.estrellas + '/' + res.totalEstrellas + '</p>' +
-      '<p class="suave">❤️ ' + vidas + (vidas === 1 ? ' vida' : ' vidas') + '</p>' +
+      '<p class="suave">🏆 Total: ' + res.total + ' · ❤️ ' + vidas + (vidas === 1 ? ' vida' : ' vidas') + '</p>' +
       '<p style="font-size:22px;margin:14px 0">Siguiente: <b>' + esc(etiqueta(sig)) + '</b></p>' +
       '<div class="botones">' +
       '<button class="btn principal" data-accion="seguirYa" data-arg="' + esc(sig.id) + '" autofocus>▶ Seguir</button>' +
