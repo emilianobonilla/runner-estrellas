@@ -282,16 +282,16 @@
       }
     });
     for (var j = 0; j < 16; j++) {      // luciérnagas: titilan y se mueven despacio
-      var fx = ((j * 211 + 40 - cam * 0.6 + Math.sin(t * 0.6 + j) * 22) % (R.ANCHO + 60) + R.ANCHO + 60) % (R.ANCHO + 60) - 30;
-      var fy = 90 + (j * 53) % 270 + Math.sin(t * 0.9 + j * 2) * 12;
-      var br = 0.35 + 0.65 * Math.abs(Math.sin(t * 1.6 + j * 1.7));
+      var fx = ((j * 211 + 40 - cam * 0.6 + 0) % (R.ANCHO + 60) + R.ANCHO + 60) % (R.ANCHO + 60) - 30;
+      var fy = 90 + (j * 53) % 270;
+      var br = 0.7;
       ctx.fillStyle = 'rgba(200,255,120,' + (0.18 * br) + ')'; ctx.beginPath(); ctx.arc(fx, fy, 7, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = 'rgba(230,255,160,' + br + ')'; ctx.beginPath(); ctx.arc(fx, fy, 2, 0, Math.PI * 2); ctx.fill();
     }
   };
 
   Renderer.prototype.cristal = function (x, y, color) {
-    var ctx = this.ctx, pulso = 0.25 + 0.15 * Math.sin(this.t * 2 + x * 0.05);
+    var ctx = this.ctx, pulso = 0.3;
     ctx.fillStyle = 'rgba(160,220,255,' + pulso + ')'; ctx.beginPath(); ctx.arc(x, y - 8, 15, 0, Math.PI * 2); ctx.fill();
     [[-6, 12, 4], [0, 20, 5], [7, 10, 4]].forEach(function (c) {
       ctx.fillStyle = color;
@@ -317,7 +317,7 @@
       var x = ((i * 233 + 40 - par) % W + W) % W - 60;
       var y = 30 + hash(i, 5) * (R.ALTO - 120);
       var r = 1 + hash(i, 8) * 1.8;
-      ctx.globalAlpha = 0.25 + 0.35 * Math.abs(Math.sin(this.t * 1.3 + i));
+      ctx.globalAlpha = 0.45;
       ctx.fillStyle = tema.cristal || '#fff';
       ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
     }
@@ -344,7 +344,7 @@
     var par2 = cam * 0.7, W2 = 900;
     for (var k = 0; k < 7; k++) {
       var cx = ((k * 211 + 90 - par2) % W2 + W2) % W2 - 40, cy = R.ALTO - T + 2;
-      var brillo = 0.55 + 0.25 * Math.sin(this.t * 2 + k * 1.7);
+      var brillo = 0.65;
       ctx.globalAlpha = 0.18 * brillo;
       ctx.fillStyle = tema.cristal; ctx.beginPath(); ctx.arc(cx, cy - 14, 34, 0, Math.PI * 2); ctx.fill();
       ctx.globalAlpha = brillo + 0.2;
@@ -390,13 +390,13 @@
     for (var i = 0; i < 26; i++) {
       var x = ((i * 83 + hash(i, 5) * 40 - par) % (R.ANCHO + 80) + R.ANCHO + 80) % (R.ANCHO + 80) - 40;
       var y = y0 + 10 + (i * 37) % 140;
-      var brillo = 0.25 + 0.3 * Math.abs(Math.sin(this.t * 1.6 + i));
+      var brillo = 0.4;
       ctx.fillStyle = 'rgba(255,255,255,' + brillo.toFixed(2) + ')';
       ctx.fillRect(x, y, 14 + hash(i, 8) * 14, 2);
     }
     // velero
-    var vx = ((620 - cam * 0.06 - this.t * 4) % (R.ANCHO + 200) + R.ANCHO + 200) % (R.ANCHO + 200) - 100;
-    var vy = y0 + 2 + Math.sin(this.t * 1.3) * 1.5;
+    var vx = ((620 - cam * 0.06) % (R.ANCHO + 200) + R.ANCHO + 200) % (R.ANCHO + 200) - 100;
+    var vy = y0 + 2;
     ctx.fillStyle = '#ffffff';
     ctx.beginPath(); ctx.moveTo(vx, vy - 4); ctx.lineTo(vx, vy - 40); ctx.lineTo(vx + 24, vy - 4); ctx.closePath(); ctx.fill();
     ctx.fillStyle = '#ff7b54';
@@ -413,7 +413,7 @@
       if (h < 0.25) continue;
       var x = k * paso + h * 90 - par;
       var base = R.ALTO - T - 6, alto = 120 + h * 50, esc = 0.85 + h * 0.3;
-      var sw = Math.sin(this.t * 1.2 + k) * 3;
+      var sw = 0;
       ctx.strokeStyle = '#8a5a2b'; ctx.lineWidth = 9 * esc; ctx.lineCap = 'round';
       ctx.beginPath(); ctx.moveTo(x, base); ctx.quadraticCurveTo(x + 22, base - alto * 0.55, x + 12 + sw, base - alto); ctx.stroke();
       ctx.strokeStyle = 'rgba(0,0,0,0.18)'; ctx.lineWidth = 2;
@@ -423,7 +423,7 @@
       var cx = x + 12 + sw, cy = base - alto;
       ctx.fillStyle = '#2e9e57';
       for (var f = 0; f < 6; f++) {
-        var ang = -Math.PI / 2 + (f - 2.5) * 0.62 + Math.sin(this.t * 1.5 + f + k) * 0.05;
+        var ang = -Math.PI / 2 + (f - 2.5) * 0.62;
         var lx = cx + Math.cos(ang) * 58 * esc, ly = cy + Math.sin(ang) * 34 * esc + 22 * esc;
         ctx.beginPath(); ctx.moveTo(cx, cy);
         ctx.quadraticCurveTo(cx + Math.cos(ang) * 30 * esc, cy + Math.sin(ang) * 42 * esc - 8, lx, ly);
@@ -442,12 +442,12 @@
     g.addColorStop(0, '#2bb8de'); g.addColorStop(1, '#0f86b8');
     ctx.fillStyle = g;
     ctx.beginPath(); ctx.moveTo(cam - 10, y + T);
-    for (var x = cam - 10; x <= cam + R.ANCHO + 10; x += 8) ctx.lineTo(x, y + Math.sin(x * 0.05 + this.t * 3) * 3);
+    for (var x = cam - 10; x <= cam + R.ANCHO + 10; x += 8) ctx.lineTo(x, y + Math.sin(x * 0.05) * 3);
     ctx.lineTo(cam + R.ANCHO + 10, y + T); ctx.closePath(); ctx.fill();
     ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 3; ctx.lineCap = 'round';
     ctx.beginPath();
     for (var x2 = cam - 10; x2 <= cam + R.ANCHO + 10; x2 += 8) {
-      var yy = y + Math.sin(x2 * 0.05 + this.t * 3) * 3;
+      var yy = y + Math.sin(x2 * 0.05) * 3;
       if (x2 === cam - 10) ctx.moveTo(x2, yy); else ctx.lineTo(x2, yy);
     }
     ctx.stroke();
@@ -580,7 +580,7 @@
       ctx.beginPath(); ctx.arc(x + c[0], y + c[1], 1.8, 0, Math.PI * 2); ctx.fill();
     });
     if (tema.ambiente === 'cueva') {   // brillo de cristal en una esquina
-      ctx.fillStyle = tema.cristal; ctx.globalAlpha = 0.55 + 0.25 * Math.sin(this.t * 3 + x * 0.05);
+      ctx.fillStyle = tema.cristal; ctx.globalAlpha = 0.65;
       ctx.beginPath(); ctx.moveTo(x + 24, y + 14); ctx.lineTo(x + 30, y + 24); ctx.lineTo(x + 24, y + 34); ctx.lineTo(x + 18, y + 24); ctx.closePath(); ctx.fill();
       ctx.globalAlpha = 1;
     }
@@ -606,7 +606,7 @@
       var y = e.y + Math.sin(this.t * 3 + e.fase) * 4;
       if (img) { ctx.drawImage(img, e.x - 16, y - 16, 32, 32); continue; }
       ctx.fillStyle = 'rgba(255,255,255,0.22)';
-      ctx.beginPath(); ctx.arc(e.x, y, 20 + Math.sin(this.t * 5 + e.fase) * 2, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(e.x, y, 20, 0, Math.PI * 2); ctx.fill();
       R.dibujarEstrella(ctx, e.x, y, e.r, Math.sin(this.t * 2 + e.fase) * 0.25, tema.estrella, tema.estrellaBorde);
     }
   };
