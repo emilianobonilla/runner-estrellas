@@ -138,7 +138,8 @@
     contexto = contexto || { tipo: 'libre', nombre: datos.perfil.nombre || 'Anónimo' };
     var carrera = contexto.tipo === 'carrera';
     if (!seguir) vidas = R.VIDAS_INICIALES;
-    actual = { nivelDef: nivelDef, contexto: contexto };
+    // "inicio" es el nivel con el que arrancó el recorrido: "Jugar de nuevo" vuelve ahí
+    actual = { nivelDef: nivelDef, contexto: contexto, inicio: seguir && actual && actual.inicio ? actual.inicio : nivelDef };
     pantallaCompletaAlJugar();
     R.UI.ocultar();
     partida = new R.Partida(nivelDef, {
@@ -172,8 +173,44 @@
     var mejoro = false;
     if (ctx.tipo === 'competencia') mejoro = R.Storage.registrarResultadoCompetencia(ctx.id, ctx.jugador, res);
     if (ctx.tipo === 'carrera') { R.Carrera.terminar(res); return R.UI.resultadosCarrera(res); }
+    // Como en Mario: al pasar un nivel se sigue con el próximo sin volver a elegir
+    var sig = res.completado && siguienteDe(res.nivelId, ctx);
+    if (sig) return seguirConEl(sig, ctx, res);
     R.UI.resultados(res, ctx, esRecord, mejoro);
   }
+
+  /* Próximo nivel del recorrido: en el modo libre, el que sigue en la lista;
+     en una competencia, el que sigue entre los niveles de esa competencia. */
+  function siguienteDe(nivelId, ctx) {
+    var ids;
+    if (ctx.tipo === 'competencia') {
+      var c = R.Storage.competencia(ctx.id);
+      ids = c ? c.niveles : [];
+    } else if (ctx.tipo === 'libre') {
+      ids = R.niveles.map(function (n) { return n.id; });
+    } else return null;
+    for (var i = ids.indexOf(nivelId) + 1; i > 0 && i < ids.length; i++) {
+      var def = R.niveles.filter(function (n) { return n.id === ids[i]; })[0];
+      if (def) return def;
+    }
+    return null;
+  }
+
+  /* Cartelito de transición y arranque automático del nivel siguiente. */
+  var seguirToken = 0;
+  function seguirConEl(sig, ctx, res) {
+    var token = ++seguirToken;
+    R.UI.transicion(sig, res, vidas);
+    setTimeout(function () { if (token === seguirToken) seguirYa(sig.id); }, 2800);
+  }
+  function seguirYa(id) {
+    if (!actual) return;
+    var def = R.niveles.filter(function (n) { return n.id === id; })[0];
+    if (!def) return;
+    seguirToken++;
+    iniciarPartida(def, actual.contexto, true);
+  }
+  function cancelarSeguir() { seguirToken++; }
 
   // En la carrera el reloj no se detiene: en vez de pausar mostramos un cartel encima.
   function pausar() {
@@ -183,7 +220,9 @@
     partida.pausar(); R.UI.pausa();
   }
   function continuar() { if (!partida) return; partida.continuar(); R.UI.ocultar(); input.reiniciar(); }
-  function reiniciar(seguir) { if (actual) iniciarPartida(actual.nivelDef, actual.contexto, seguir); }
+  function reiniciar(seguir) {
+    if (actual) iniciarPartida(seguir ? actual.nivelDef : actual.inicio || actual.nivelDef, actual.contexto, seguir);
+  }
   /* Deja la partida sin avisarle a nadie (lo usa la revancha del anfitrión). */
   function cortarPartida() {
     partida = null; input.activo = false;
@@ -228,6 +267,7 @@
   /* ---------- utilidades para la interfaz ---------- */
   R.app = {
     datos: datos, audio: audio, input: input,
+    siguienteDe: siguienteDe, seguirYa: seguirYa, cancelarSeguir: cancelarSeguir,
     iniciarPartida: iniciarPartida, pausar: pausar, continuar: continuar, reiniciar: reiniciar, abandonar: abandonar,
     personajeActual: personajeActual, temaPara: temaPara, actualizarTactil: actualizarTactil,
     cortarPartida: cortarPartida,

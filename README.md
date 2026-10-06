@@ -7,6 +7,10 @@ que conecta entre sí hasta 6 dispositivos).
 
 **Jugar online:** https://emilianobonilla.github.io/runner-estrellas/
 
+## Ejecutar localmente
+
+Ver la guía paso a paso en [EJECUTAR-LOCALMENTE.md](EJECUTAR-LOCALMENTE.md).
+
 ## Cómo jugar
 
 1. Abrí `index.html` con doble clic (Chrome, Firefox, Edge o Safari), o entrá al enlace de arriba.
@@ -78,7 +82,11 @@ publicado con GitHub Pages es visible para cualquiera.
 Si una conexión ya establecida se corta, el invitado intenta volver a entrar
 automáticamente cinco veces. El anfitrión conserva durante un minuto su número,
 nombre, personaje y resultado; durante una carrera puede seguir jugando y se
-sincroniza de nuevo cuando vuelve la señal.
+sincroniza de nuevo cuando vuelve la señal. Si hay un relay TURN configurado, en la
+sala aparece junto a la latencia el aviso *🛡 respaldo TURN*. Las credenciales se piden
+una sola vez y se reutilizan hasta que vence su `ttl`; si el endpoint tarda más de 8
+segundos o falla, la sala sigue con STUN. Esperar la conexión con la sala puede llevar
+hasta 30 segundos antes de avisar del error.
 
 ## Mundos (grupos de niveles)
 
@@ -106,7 +114,7 @@ Un nivel hereda el tema, el enemigo y la dificultad de su mundo; si el nivel pon
 
 El juego trae 25 niveles (`nivel-01` a `nivel-25`), de dificultad 1 a 5. Para agregar otro:
 
-1. Copiá `data/levels/nivel-04-cueva.js` a `data/levels/nivel-11-loquesea.js`.
+1. Copiá `data/levels/nivel-04-cueva.js` a `data/levels/nivel-26-loquesea.js`.
 2. Cambiá `id`, `orden`, `nombre`, `descripcion`, `mundo` (el id de un mundo de
    `data/worlds.js`: de ahí sale la estética), `dificultad` (1 a 5, se muestra en
    estrellitas en la lista de niveles) y `tiempoObjetivo`.
@@ -121,7 +129,7 @@ La `E` pone **el enemigo del mundo** (ver la tabla de arriba), así el mismo map
 bicho según dónde esté. Para forzar un tipo concreto usá su letra: `A` caminante ·
 `S` saltarín · `V` volador (va en el aire, no apoyado) · `R` perseguidor · `B` blindado.
 
-4. Agregá la línea `<script src="data/levels/nivel-11-loquesea.js"></script>` en
+4. Agregá la línea `<script src="data/levels/nivel-26-loquesea.js"></script>` en
    `index.html`, junto a los otros niveles de su mundo. Listo: aparece dentro de su
    mundo en la lista de niveles, en el ranking y en las competencias.
 
@@ -210,7 +218,9 @@ computadora, tablet o celular. Gana el primero que toca la bandera.
    4 números**.
 2. Los demás entran en **Carrera multijugador → Entrar con un código** y escriben esos
    4 números (hacen falta al menos 2 corredores para largar).
-3. Quien creó la sala elige el nivel. Cuando **todos** tocan **Estoy listo** arranca una
+3. Quien creó la sala elige el nivel (la lista está agrupada por mundo, con cada mundo
+   desplegable). Cada uno puede **cambiar su personaje** en la sala hasta que largue la
+   carrera; el nombre queda fijo. Cuando **todos** tocan **Estoy listo** arranca una
    cuenta regresiva de 3 y largan juntos.
 
 Durante la carrera se ve a los otros **medio transparentes** cuando están cerca, cada uno
@@ -270,7 +280,8 @@ GitHub ([`.github/workflows/version.yml`](.github/workflows/version.yml)):
 
 1. sube el número (ver abajo) y usa el título del PR como nombre de la versión,
 2. lo escribe en `js/core/version.js` y hace el commit en `main`,
-3. crea la etiqueta `vX.Y.Z` y una *release* en GitHub,
+3. crea la etiqueta `vX.Y.Z` y una *release* en GitHub (los pasos se reintentan, y si
+   una versión quedó sin etiqueta o sin release, la acción la repara en la corrida siguiente),
 4. le pide a GitHub Pages que publique de nuevo.
 
 Nadie tiene que tocar el número a mano. Se usan tres números,
@@ -295,10 +306,6 @@ en *Cómo jugar*.
 
 ## Desarrollo
 
-No hay dependencias ni compilación. Para probar con un servidor local (opcional):
-
-```bash
-python3 -m http.server 8123
-```
-
-y abrir `http://localhost:8123`.
+No hay dependencias ni compilación. Para levantar el juego en tu máquina, ver
+[EJECUTAR-LOCALMENTE.md](EJECUTAR-LOCALMENTE.md). Después de tocar un nivel, corré
+`node herramientas/probar-niveles.js`.
