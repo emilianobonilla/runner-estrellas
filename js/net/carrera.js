@@ -308,7 +308,7 @@
       if (!j) {
         j = nuevoJugador(proximoJid(), peer, String(d.nombre || 'Corredor').slice(0, 20), d.personaje,
           String(d.version || '').slice(0, 12), sesion);   // las versiones viejas no lo mandan
-        j.espera = C.estado === 'corriendo' || C.estado === 'fin';   // entró con la carrera en marcha
+        j.espera = C.estado === 'corriendo' || C.estado === 'fin' || C._abandone;   // entró con la carrera en marcha
         C.jugadores.push(j);
         C.aviso = j.nombre + ' entró a la sala.';
       }
@@ -572,9 +572,10 @@
      partida: el anfitrión tiene que seguir devolviendo las estrellas aunque él
      ya haya terminado su carrera y los demás sigan corriendo. */
   C.tick = function (p, dt) {
-    if (C.estado !== 'corriendo' && C.estado !== 'fin') return;
+    var anfitrionFuera = C.esAnfitrion && (C.estado === 'fin' || C._abandone);   // terminé o abandoné, pero otros siguen
+    if (C.estado !== 'corriendo' && C.estado !== 'fin' && !anfitrionFuera) return;
     devolverEstrellas(dt);
-    if (C.esAnfitrion && C.estado === 'fin' && C.conectada() && C.faltanLlegar() > 0) {
+    if (anfitrionFuera && C.conectada() && C.faltanLlegar() > 0) {
       // Ya terminé pero otros siguen: sigo de relé para que se vean entre ellos
       C._acum += dt;
       if (C._acum >= 1 / HZ) { C._acum = 0; C.red.enviar('poss', { j: listaPosiciones() }); }
@@ -785,9 +786,9 @@
   };
 
   C.abandonar = function () {
+    C._abandone = C.esAnfitrion;   // antes de anotar el resultado: ahí se decide si avanzar
     registrarMiResultado({ llego: false, abandono: true, tiempo: 0, puntos: 0, estrellas: 0 });
     C.estado = 'sala';
-    C._abandone = C.esAnfitrion;
     var yo = C.jugador(C.miId);
     if (yo) yo.listo = false;
     if (!C.esAnfitrion && C.conectada()) C.red.enviar('listo', { listo: false });
