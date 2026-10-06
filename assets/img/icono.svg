@@ -1,12 +1,45 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
     <linearGradient id="cielo" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#63b8ff"/><stop offset="1" stop-color="#1b2233"/>
+      <stop offset="0" stop-color="#4aa8ff"/><stop offset="0.6" stop-color="#2a5fb8"/><stop offset="1" stop-color="#1b2233"/>
     </linearGradient>
+    <linearGradient id="pasto" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7ee3b3"/><stop offset="1" stop-color="#3aa876"/>
+    </linearGradient>
+    <radialGradient id="estrella" cx="0.4" cy="0.3" r="0.8">
+      <stop offset="0" stop-color="#fff2a8"/><stop offset="0.5" stop-color="#ffd23f"/><stop offset="1" stop-color="#f29e1b"/>
+    </radialGradient>
+    <radialGradient id="halo" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffe98a" stop-opacity="0.55"/><stop offset="1" stop-color="#ffe98a" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="marco"><rect width="512" height="512" rx="96"/></clipPath>
   </defs>
-  <rect width="512" height="512" rx="96" fill="url(#cielo)"/>
-  <rect x="0" y="400" width="512" height="112" fill="#57cc99"/>
-  <rect x="0" y="400" width="512" height="18" fill="#7ee3b3"/>
-  <polygon fill="#ffd23f" stroke="#e0a800" stroke-width="10" stroke-linejoin="round"
-    points="256,70 306,180 426,194 338,278 360,398 256,338 152,398 174,278 86,194 206,180"/>
+  <g clip-path="url(#marco)">
+    <rect width="512" height="512" fill="url(#cielo)"/>
+    <circle cx="256" cy="236" r="200" fill="url(#halo)"/>
+    <g fill="#ffffff" opacity="0.85">
+      <circle cx="84" cy="96" r="4"/><circle cx="430" cy="78" r="5"/><circle cx="452" cy="196" r="3"/>
+      <circle cx="62" cy="214" r="3"/><circle cx="380" cy="130" r="3"/><circle cx="140" cy="150" r="3"/>
+    </g>
+    <path d="M0 410 Q128 372 256 400 T512 392 V512 H0Z" fill="#2f7f63"/>
+    <rect x="0" y="420" width="512" height="92" fill="url(#pasto)"/>
+    <rect x="0" y="420" width="512" height="14" fill="#a6f0cc"/>
+    <g stroke="#ffffff" stroke-width="10" stroke-linecap="round" opacity="0.55">
+      <line x1="62" y1="250" x2="112" y2="250"/><line x1="82" y1="290" x2="124" y2="290"/><line x1="70" y1="330" x2="108" y2="330"/>
+    </g>
+    <ellipse cx="270" cy="428" rx="92" ry="14" fill="#1f5c46" opacity="0.45"/>
+    <g transform="rotate(-8 270 250)">
+      <polygon fill="url(#estrella)" stroke="#a85f00" stroke-width="12" stroke-linejoin="round"
+        points="270,66 322,178 446,194 355,279 378,402 270,342 162,402 185,279 94,194 218,178"/>
+      <path d="M270 92 L304 172 L248 168 Z" fill="#fff8c9" opacity="0.55"/>
+      <ellipse cx="236" cy="242" rx="17" ry="24" fill="#2b1a00"/><ellipse cx="304" cy="242" rx="17" ry="24" fill="#2b1a00"/>
+      <circle cx="242" cy="233" r="7" fill="#fff"/><circle cx="310" cy="233" r="7" fill="#fff"/>
+      <path d="M240 288 Q270 322 300 288 Q270 298 240 288Z" fill="#7a1f1f" stroke="#2b1a00" stroke-width="7" stroke-linejoin="round"/>
+      <ellipse cx="208" cy="278" rx="14" ry="9" fill="#ff7a6b" opacity="0.7"/><ellipse cx="332" cy="278" rx="14" ry="9" fill="#ff7a6b" opacity="0.7"/>
+    </g>
+    <g fill="#fff8c9">
+      <path d="M416 300 l6 16 16 6 -16 6 -6 16 -6 -16 -16 -6 16 -6z"/>
+      <path d="M96 140 l4 11 11 4 -11 4 -4 11 -4 -11 -11 -4 11 -4z"/>
+    </g>
+  </g>
 </svg>
