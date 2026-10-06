@@ -542,29 +542,56 @@
       '<tbody>' + filas + '</tbody></table>';
 
     // Cuando todos terminaron, el anfitrión lleva a todos al nivel siguiente solo;
-    // si era el último, a la sala.
+    // si era el último, a la sala. Mientras tanto se muestra de qué depende.
     clearTimeout(UI._seguirCarrera);
+    clearInterval(UI._cuentaCarrera);
     var terminaron = faltan === 0 && C.conectada();
-    var sig = terminaron ? C.siguiente() : null;
+    var sig = C.siguiente();
+    var destino = sig ? esc(etiqueta(sig)) : 'la sala';
+    var ESPERA = 7000;
+    if (!terminaron) UI._seguirDesde = 0;
+    else if (!UI._seguirDesde) UI._seguirDesde = Date.now();
     if (terminaron && C.esAnfitrion) {
       UI._seguirCarrera = setTimeout(function () {
         if (UI.pantalla !== 'resultadosCarrera') return;
+        UI._seguirDesde = 0;
         if (sig) C.seguir(); else C.pedirRevancha();
-      }, 7000);
+      }, Math.max(0, ESPERA - (Date.now() - UI._seguirDesde)));
     }
-    var proximo = !terminaron ? ''
-      : sig ? '<p class="suave">▶ ' + esc(etiqueta(sig)) + '</p>'
-      : '<p class="suave">↩ Sala</p>';
+
+    var proximo;
+    if (!C.conectada()) {
+      proximo = '<p class="suave">🔌 Sin conexión con la carrera… reconectando</p>';
+    } else if (!terminaron) {
+      var faltantes = C.jugadores.filter(function (j) { return !j.espera && !j.res; })
+        .map(function (j) { return esc(j.nombre) + (j.conectado ? '' : ' (reconectando…)'); });
+      proximo = '<p class="suave">⏳ Falta que terminen: <b>' + faltantes.join(', ') + '</b><br>' +
+        'Después sigue ' + (sig ? '▶ ' + destino : '↩ la sala') + '</p>';
+    } else {
+      proximo = '<p class="suave">' + (sig ? '▶ Sigue: ' : '↩ Volvemos a ') + destino +
+        ' en <b id="cuenta-carrera"></b>' +
+        (C.esAnfitrion ? '' : '<br>(arranca el anfitrión)') + '</p>';
+    }
 
     UI.mostrar(
       '<div class="panel centrado">' +
       '<h2 style="font-size:32px">' + titulo + '</h2>' +
       proximo +
-      (!C.conectada() ? '<p class="suave">🔌</p>' : '') +
       '<div class="contenedor-tabla" style="margin-top:14px">' + tabla + '</div>' +
-      '<div class="botones">' +
-      '<button class="btn" data-accion="carreraSalir">← &nbsp;Salir de la carrera</button>' +
-      '</div></div>');
+      (!C.conectada() ? '<div class="botones"><button class="btn" data-accion="carreraSalir">← &nbsp;Salir de la carrera</button></div>' : '') +
+      '</div>');
+    var spanCuenta = document.getElementById('cuenta-carrera');
+    if (spanCuenta) {
+      var pintar = function () {
+        var seg = Math.max(0, Math.ceil((ESPERA - (Date.now() - UI._seguirDesde)) / 1000));
+        spanCuenta.textContent = seg + ' s';
+      };
+      pintar();
+      UI._cuentaCarrera = setInterval(function () {
+        if (UI.pantalla !== 'resultadosCarrera' || !document.body.contains(spanCuenta)) return clearInterval(UI._cuentaCarrera);
+        pintar();
+      }, 250);
+    }
     UI.pantalla = 'resultadosCarrera';
   };
 
