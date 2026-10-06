@@ -131,12 +131,6 @@
         '<canvas width="110" height="110" data-personaje="' + esc(p.id) + '"></canvas>' +
         '<h4>' + esc(p.nombre) + '</h4><div class="meta">' + esc(p.descripcion || '') + '</div></div>';
     }).join('');
-    var temas = '<div class="tarjeta ' + (perfil.tema === 'auto' ? 'sel' : '') + '" data-accion="elegirTema" data-arg="auto">' +
-      '<div class="muestra-tema" style="background:linear-gradient(135deg,#63b8ff,#141a2b,#ff9a8b)"></div><h4>Automático</h4><div class="meta">Cada nivel usa su propio tema</div></div>';
-    Object.keys(R.temas).forEach(function (id) {
-      var t = R.temas[id];
-      temas += '<div class="tarjeta ' + (perfil.tema === id ? 'sel' : '') + '" data-accion="elegirTema" data-arg="' + esc(id) + '">' + muestraTema(t) + '<h4>' + esc(t.nombre) + '</h4></div>';
-    });
     function chip(campo, valor, texto) {
       return '<label class="chip ' + (perfil[campo] === valor ? 'sel' : '') + '" data-accion="opcion" data-arg="' + campo + ':' + valor + '">' + texto + '</label>';
     }
@@ -145,7 +139,6 @@
       '<div class="barra-superior"><h2>Personalizar</h2>' + botonVolver('menu') + '</div>' +
       '<label class="campo"><span>Tu nombre</span><input type="text" maxlength="20" data-campo="nombre" placeholder="Escribí tu nombre" value="' + esc(perfil.nombre) + '"></label>' +
       '<h3>Personaje</h3><div class="tarjetas">' + personajes + '</div>' +
-      '<h3>Estética</h3><div class="tarjetas">' + temas + '</div>' +
       '<h3>Sonido</h3><div class="opciones">' + chip('sonido', true, '🔊 Con sonido') + chip('sonido', false, '🔇 Silencio') + '</div>' +
       '<h3>Controles táctiles</h3><div class="opciones">' + chip('tactil', 'auto', 'Automático') + chip('tactil', 'si', 'Siempre') + chip('tactil', 'no', 'Nunca') + '</div>' +
       (R.app.fsDisponible ? '<h3>Pantalla completa</h3><div class="opciones">' + chip('pantallaCompleta', true, '⛶ Al empezar un nivel') + chip('pantallaCompleta', false, 'Nunca') + '</div>' : '') +
@@ -614,7 +607,6 @@
     salirRecorrido: function () { R.app.cancelarSeguir(); R.app.abandonar(); },
 
     elegirPersonaje: function (id) { datos().perfil.personaje = id; R.Storage.guardar(); repintarPersonalizar(); },
-    elegirTema: function (id) { datos().perfil.tema = id; R.Storage.guardar(); repintarPersonalizar(); },
     opcion: function (arg) {
       var partes = arg.split(':'), campo = partes[0], valor = partes[1];
       if (valor === 'true') valor = true; else if (valor === 'false') valor = false;

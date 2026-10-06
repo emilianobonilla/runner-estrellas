@@ -10,8 +10,9 @@
       var d = {};
       try { d = JSON.parse(localStorage.getItem(CLAVE)) || {}; } catch (e) { d = {}; }
       d.perfil = Object.assign({
-        nombre: '', personaje: null, tema: 'auto', sonido: true, tactil: 'auto', pantallaCompleta: true
+        nombre: '', personaje: null, sonido: true, tactil: 'auto', pantallaCompleta: true
       }, d.perfil || {});
+      delete d.perfil.tema;                // ya no se elige la estética (viene del mundo)
       d.ranking = d.ranking || {};        // { nivelId: [ {nombre, puntos, estrellas, tiempo, fecha} ] }
       d.progreso = d.progreso || {};      // { nivelId: {completado, mejorPuntaje, mejorEstrellas} }
       d.competencias = d.competencias || [];

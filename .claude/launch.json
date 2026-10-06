@@ -4,7 +4,7 @@
     {
       "name": "runner",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "8123", "--bind", "127.0.0.1"],
+      "runtimeArgs": ["herramientas/servir.py", "8123"],
       "port": 8123
     }
   ]
