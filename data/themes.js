@@ -50,7 +50,7 @@ RUNNER.registrarTema({
 RUNNER.registrarTema({
   id: 'cueva',
   nombre: 'Cueva misteriosa',
-  cielo: ['#141a2b', '#2b2f52'],
+  cielo: ['#0c1022', '#2a2c55'],
   sol: null,
   nubes: null,
   colinas: ['#2f3450', '#22263d'],
@@ -69,6 +69,8 @@ RUNNER.registrarTema({
   checkpoint: '#c3ff7a',
   enemigo: '#5c4a9e',
   enemigoOjos: '#e8ff5a',
+  ambiente: 'cueva',   // estalactitas, cristales y roca con vetas (ver render.js)
+  cristal: '#7cf0ff',
   imagenes: {}
 });
 

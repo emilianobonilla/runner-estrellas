@@ -241,6 +241,7 @@
       }
     }
     var self = this;
+    if (tema.ambiente === 'cueva') this.fondoCueva(tema, cam);
     (tema.colinas || []).forEach(function (color, i) {
       var par = cam * (0.35 + i * 0.25);
       var base = R.ALTO - T - (i === 0 ? 40 : 10);
@@ -255,6 +256,54 @@
       ctx.lineTo(R.ANCHO, R.ALTO); ctx.closePath(); ctx.fill();
       if (tema.decoracion === 'prado') self.arbolesLejanos(altura, par, i, color);
     });
+    if (tema.ambiente === 'cueva') this.techoCueva(tema, cam);
+  };
+
+  // Cueva: polvillo brillante al fondo (se dibuja antes de las colinas)
+  Renderer.prototype.fondoCueva = function (tema, cam) {
+    var ctx = this.ctx, W = 1100, par = cam * 0.12;
+    for (var i = 0; i < 26; i++) {
+      var x = ((i * 233 + 40 - par) % W + W) % W - 60;
+      var y = 30 + hash(i, 5) * (R.ALTO - 120);
+      var r = 1 + hash(i, 8) * 1.8;
+      ctx.globalAlpha = 0.25 + 0.35 * Math.abs(Math.sin(this.t * 1.3 + i));
+      ctx.fillStyle = tema.cristal || '#fff';
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  };
+
+  // Cueva: estalactitas colgando del techo y cristales luminosos entre las rocas
+  Renderer.prototype.techoCueva = function (tema, cam) {
+    var ctx = this.ctx;
+    for (var capa = 0; capa < 2; capa++) {
+      var par = cam * (0.5 + capa * 0.3), paso = 150 - capa * 30, W = paso * 12;
+      ctx.fillStyle = capa === 0 ? sombrear(tema.colinas[0], -0.35) : sombrear(tema.colinas[0], -0.6);
+      for (var i = 0; i < 12; i++) {
+        var x = ((i * paso + capa * 61 - par) % W + W) % W - paso;
+        var largo = 40 + hash(i, 3 + capa) * 80 - capa * 10, ancho = 26 + hash(i, 7) * 22;
+        ctx.beginPath();
+        ctx.moveTo(x - ancho / 2, -2); ctx.lineTo(x + ancho / 2, -2);
+        ctx.quadraticCurveTo(x + 3, largo * 0.6, x, largo);
+        ctx.quadraticCurveTo(x - 3, largo * 0.6, x - ancho / 2, -2);
+        ctx.fill();
+      }
+    }
+    // cristales que brillan sobre el piso del fondo
+    var par2 = cam * 0.7, W2 = 900;
+    for (var k = 0; k < 7; k++) {
+      var cx = ((k * 211 + 90 - par2) % W2 + W2) % W2 - 40, cy = R.ALTO - T + 2;
+      var brillo = 0.55 + 0.25 * Math.sin(this.t * 2 + k * 1.7);
+      ctx.globalAlpha = 0.18 * brillo;
+      ctx.fillStyle = tema.cristal; ctx.beginPath(); ctx.arc(cx, cy - 14, 34, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = brillo + 0.2;
+      for (var j = -1; j <= 1; j++) {
+        var h = 20 - Math.abs(j) * 7 + hash(k, j + 4) * 8, bx = cx + j * 8;
+        ctx.fillStyle = j === 0 ? tema.cristal : sombrear(tema.cristal, -0.3);
+        ctx.beginPath(); ctx.moveTo(bx - 5, cy); ctx.lineTo(bx + j * 2, cy - h); ctx.lineTo(bx + 5, cy); ctx.closePath(); ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
   };
 
   /* Arbolitos y arbustos redondos sobre las colinas (solo temas con "decoracion"). */
@@ -331,6 +380,12 @@
         ctx.fillRect(x + 4 + rx * 34, y + 16 + ry * 26, 6, 4);
       }
     }
+    if (tema.ambiente === 'cueva') {
+      ctx.strokeStyle = sombrear(tema.sueloRelleno, 0.18); ctx.lineWidth = 2;
+      var vx = x + 6 + hash(cx, cy) * 20;
+      ctx.beginPath(); ctx.moveTo(vx, y + 14); ctx.lineTo(vx + 10, y + 26); ctx.lineTo(vx + 4, y + 40); ctx.stroke();
+      if (hash(cx, cy + 9) > 0.8) { ctx.fillStyle = tema.cristal; ctx.globalAlpha = 0.8; ctx.fillRect(x + 30, y + 30, 4, 4); ctx.globalAlpha = 1; }
+    }
     if (arriba) {
       ctx.fillStyle = tema.sueloTop; ctx.fillRect(x, y, T, 12);
       ctx.fillStyle = sombrear(tema.sueloTop, 0.28); ctx.fillRect(x, y, T, 3);
@@ -385,6 +440,11 @@
     [[8, 8], [T - 10, 8], [8, T - 10], [T - 10, T - 10]].forEach(function (c) {   // clavitos
       ctx.beginPath(); ctx.arc(x + c[0], y + c[1], 1.8, 0, Math.PI * 2); ctx.fill();
     });
+    if (tema.ambiente === 'cueva') {   // brillo de cristal en una esquina
+      ctx.fillStyle = tema.cristal; ctx.globalAlpha = 0.55 + 0.25 * Math.sin(this.t * 3 + x * 0.05);
+      ctx.beginPath(); ctx.moveTo(x + 24, y + 14); ctx.lineTo(x + 30, y + 24); ctx.lineTo(x + 24, y + 34); ctx.lineTo(x + 18, y + 24); ctx.closePath(); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
   };
 
   Renderer.prototype.pinchos = function (x, y, tema) {
