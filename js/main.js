@@ -304,6 +304,8 @@
       var ctx = cv.getContext('2d');
       ctx.clearRect(0, 0, cv.width, cv.height);
       R.dibujarPersonaje(ctx, per, cv.width / 2, cv.height - 10, { enSuelo: true, mirando: 1, vx: 0, t: 0, esc: Math.min(1.35, (cv.height - 8) / 95) });
+      // Estos canvas se dibujan una sola vez: si la foto todavía se está decodificando, se repinta al cargar
+      if (per.cara && !per.cara.canvas) per.cara.alCargar(function () { R.app.dibujarPersonajeEn(cv, per); });
     },
 
     descargarJSON: function (nombre, obj) {

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Probar cara · Cazaestrellas</title>
+<!-- ============================================================
+     PROBADOR DE CARAS  —  herramientas/probar-cara.html
+     ------------------------------------------------------------
+     Muestra los personajes con una cara de foto puesta, para afinar el
+     dibujo mirando el resultado (tamaño de la cabeza, espejado, color de
+     piel de manos y brazos) con los 13 cuerpos a la vez y animados.
+
+     Se abre con doble clic o desde el servidor (python3 herramientas/servir.py).
+     Las fotos se procesan acá mismo: no se guarda ni se sube nada.
+     No forma parte del juego: index.html no lo carga.
+     ============================================================ -->
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; padding: 20px; font: 15px/1.4 system-ui, sans-serif; background: #0f1420; color: #e8ecf5; }
+  h1 { margin: 0 0 4px; font-size: 22px; }
+  p.suave { margin: 0 0 16px; color: #9aa6c0; }
+  #panel { display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: flex-end; padding: 14px; border-radius: 12px; background: #1a2236; margin-bottom: 14px; }
+  .grupo { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #9aa6c0; }
+  .grupo b { color: #e8ecf5; font-weight: 600; }
+  .fila { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  select, button, input[type=file] { font: inherit; padding: 5px 8px; border-radius: 8px; border: 1px solid #3a4b70; background: #232d47; color: inherit; }
+  button { cursor: pointer; }
+  #caras { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  #caras button { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px; font-size: 12px; }
+  #caras button.sel { border-color: #ffd23f; }
+  #caras img { width: 64px; height: 64px; border-radius: 50%; display: block; }
+  #grilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; padding: 10px; border-radius: 12px; background: #8ecae6; }
+  .celda { text-align: center; color: #1d1b2e; font-weight: 700; font-size: 13px; }
+  .celda canvas { display: block; margin: 0 auto; }
+  #medida { color: #9aa6c0; font-size: 13px; margin-top: 10px; }
+</style>
+</head>
+<body>
+  <h1>Probar la cara en los personajes</h1>
+  <p class="suave">Herramienta de desarrollo: elegí una cara de prueba (o subí una foto tuya) y mirá cómo queda en cada cuerpo.</p>
+
+  <div id="panel">
+    <div class="grupo"><b>Foto propia (solo para probar)</b>
+      <input type="file" id="archivo" accept="image/*">
+    </div>
+    <div class="grupo"><b>Encuadre de la foto: <span id="v-encuadre"></span>×</b>
+      <input type="range" id="encuadre" min="1" max="3" step="0.05" value="1.7">
+    </div>
+    <div class="grupo"><b>Tamaño de la cabeza: <span id="v-escala"></span>×</b>
+      <input type="range" id="escala" min="1" max="1.6" step="0.05">
+    </div>
+    <div class="grupo"><b>Zoom del personaje: <span id="v-zoom"></span>×</b>
+      <input type="range" id="zoom" min="1" max="4" step="0.1" value="2.2">
+    </div>
+    <div class="grupo"><b>Piel de manos y brazos</b>
+      <div class="fila">
+        <label><input type="checkbox" id="usarPiel" checked> usar la de la foto</label>
+        <input type="color" id="piel" title="Color de piel (se calcula de la foto; se puede cambiar a mano)">
+      </div>
+    </div>
+    <div class="grupo"><b>Espejado</b>
+      <label><input type="checkbox" id="contraespejo"> la foto no se da vuelta al mirar a la izquierda</label>
+    </div>
+    <div class="grupo"><b>Pose</b>
+      <div class="fila">
+        <select id="estado">
+          <option value="quieto">Quieto</option>
+          <option value="correr" selected>Corriendo</option>
+          <option value="saltar">Saltando</option>
+          <option value="victoria">Victoria</option>
+          <option value="muerto">Cayó</option>
+        </select>
+        <select id="mirando">
+          <option value="1">Mira a la derecha</option>
+          <option value="-1">Mira a la izquierda</option>
+        </select>
+        <select id="fondo">
+          <option value="#8ecae6">Cielo</option>
+          <option value="#3f9a45">Pasto</option>
+          <option value="#2b2347">Cueva</option>
+          <option value="#f4d58d">Playa</option>
+        </select>
+      </div>
+    </div>
+    <div class="grupo"><b>Mostrar</b>
+      <label><input type="checkbox" id="conCara" checked> con la cara puesta (si no, los personajes de siempre)</label>
+    </div>
+  </div>
+
+  <div id="caras"></div>
+  <div id="grilla"></div>
+  <div id="medida"></div>
+
+  <script src="../js/core/util.js"></script>
+  <script src="../js/game/render.js"></script>
+  <script src="../data/characters.js"></script>
+  <script>
+  (function (R) {
+    var LADO = 96, CALIDAD = 0.85;
+    var $ = function (id) { return document.getElementById(id); };
+    var caras = [], actual = null, cuantas = 0;
+
+    /* ----- caras de prueba dibujadas a mano (un plano abierto, como una selfie sin acercar) ----- */
+    function caraSintetica(nombre, piel, pelo, fondo, remera) {
+      var cv = document.createElement('canvas'); cv.width = cv.height = LADO * 2;
+      var c = cv.getContext('2d');
+      c.scale(2, 2);
+      function ovalo(x, y, rx, ry, color) { c.fillStyle = color; c.beginPath(); c.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); c.fill(); }
+      c.fillStyle = fondo; c.fillRect(0, 0, LADO, LADO);
+      ovalo(48, 104, 42, 24, remera);                    // hombros
+      ovalo(48, 44, 31, 33, pelo);                       // pelo de atrás
+      ovalo(48, 76, 9, 13, piel); ovalo(48, 82, 9, 7, 'rgba(0,0,0,0.18)');   // cuello
+      ovalo(48, 50, 25, 29, piel);                       // cara
+      ovalo(23.5, 52, 3.5, 6, piel); ovalo(72.5, 52, 3.5, 6, piel);          // orejas
+      c.fillStyle = pelo; c.beginPath(); c.ellipse(48, 33, 27, 17, 0, Math.PI, 0); c.fill();   // flequillo
+      ovalo(38, 50, 5, 3.4, '#fff'); ovalo(58, 50, 5, 3.4, '#fff');
+      ovalo(38.5, 50, 2.6, 2.8, '#2a1a10'); ovalo(58.5, 50, 2.6, 2.8, '#2a1a10');
+      c.strokeStyle = pelo; c.lineWidth = 2.4; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(32, 43); c.lineTo(44, 42); c.moveTo(52, 42); c.lineTo(64, 43); c.stroke();
+      ovalo(48, 58, 3, 4, 'rgba(0,0,0,0.12)');           // nariz
+      ovalo(34, 63, 5, 3, 'rgba(255,90,100,0.25)'); ovalo(62, 63, 5, 3, 'rgba(255,90,100,0.25)');
+      c.strokeStyle = '#8a2f3b'; c.lineWidth = 2.4;
+      c.beginPath(); c.arc(48, 66, 8, 0.2 * Math.PI, 0.8 * Math.PI); c.stroke();
+      return agregar(crearCara(cv, nombre, +$('encuadre').value));
+    }
+
+    /* ----- color de piel: promedio de dos parches bajo los ojos (prototipo del paso 2) ----- */
+    function muestrearPiel(cv) {
+      var c = cv.getContext('2d'), r = 0, g = 0, b = 0, n = 0;
+      [[0.30, 0.64], [0.70, 0.64]].forEach(function (p) {
+        var d = c.getImageData(Math.round(p[0] * LADO) - 4, Math.round(p[1] * LADO) - 4, 8, 8).data;
+        for (var i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; n++; }
+      });
+      function h(v) { return ('0' + Math.round(v / n).toString(16)).slice(-2); }
+      return '#' + h(r) + h(g) + h(b);
+    }
+
+    /* Recorte cuadrado al centro de la fuente, acercado "zoom" veces, a LADO×LADO */
+    function recortar(fuente, zoom) {
+      var cv = document.createElement('canvas'); cv.width = cv.height = LADO;
+      var w = fuente.naturalWidth || fuente.width, h = fuente.naturalHeight || fuente.height;
+      var l = Math.min(w, h) / zoom;
+      cv.getContext('2d').drawImage(fuente, (w - l) / 2, (h - l) / 2 - l * 0.04, l, l, 0, 0, LADO, LADO);
+      return cv;
+    }
+    function crearCara(fuente, nombre, zoom) {
+      var cv = recortar(fuente, zoom), img = cv.toDataURL('image/jpeg', CALIDAD);
+      return { id: 'prueba' + (++cuantas), nombre: nombre, fuente: fuente, img: img, piel: muestrearPiel(cv), kb: img.length / 1024 };
+    }
+    function agregar(cara) { caras.push(cara); elegir(cara); return cara; }
+    // Al soltar el control de encuadre se vuelve a recortar la cara elegida (con id nuevo: las caras no se pisan)
+    function reencuadrar() {
+      if (!actual) return;
+      var nueva = crearCara(actual.fuente, actual.nombre, +$('encuadre').value);
+      caras[caras.indexOf(actual)] = nueva;
+      elegir(nueva);
+    }
+
+    /* ----- foto propia: recorte cuadrado al centro (el juego dejará mover y acercar a mano) ----- */
+    $('archivo').onchange = function () {
+      var f = this.files && this.files[0]; if (!f) return;
+      var im = new Image(), url = URL.createObjectURL(f);
+      im.onload = function () {
+        agregar(crearCara(im, f.name.replace(/\.[^.]+$/, '').slice(0, 14), +$('encuadre').value));
+      };
+      im.src = url;     // (la URL queda viva mientras se prueba: el encuadre vuelve a recortar de ahí)
+    };
+
+    /* ----- controles ----- */
+    function pintarCaras() {
+      $('caras').innerHTML = '';
+      caras.forEach(function (cara) {
+        var b = document.createElement('button');
+        b.className = cara === actual ? 'sel' : '';
+        b.innerHTML = '<img alt="" src="' + cara.img + '"><span>' + cara.nombre + '</span>';
+        b.onclick = function () { elegir(cara); };
+        $('caras').appendChild(b);
+      });
+    }
+    function elegir(cara) {
+      actual = cara;
+      $('piel').value = cara.piel;
+      pintarCaras();
+      $('medida').textContent = 'Foto guardada: ' + LADO + '×' + LADO + ' JPEG a calidad ' + CALIDAD + ' = ' + cara.kb.toFixed(1) + ' KB (' + cara.img.length + ' caracteres como data URL).';
+    }
+    function leer() {
+      R.AJUSTES_CARA.escala = +$('escala').value;
+      R.AJUSTES_CARA.contraespejo = $('contraespejo').checked;
+      $('v-escala').textContent = (+$('escala').value).toFixed(2);
+      $('v-zoom').textContent = (+$('zoom').value).toFixed(1);
+      $('v-encuadre').textContent = (+$('encuadre').value).toFixed(2);
+      $('grilla').style.background = $('fondo').value;
+    }
+    $('escala').value = R.AJUSTES_CARA.escala;
+    $('contraespejo').checked = R.AJUSTES_CARA.contraespejo;
+    ['escala', 'zoom', 'contraespejo', 'fondo', 'encuadre'].forEach(function (id) { $(id).oninput = leer; });
+    $('encuadre').onchange = reencuadrar;
+    $('piel').oninput = function () { if (actual) actual.piel = this.value; };
+    leer();
+
+    /* ----- la grilla: los 13 cuerpos, animados ----- */
+    var celdas = R.personajes.map(function (per) {
+      var div = document.createElement('div'); div.className = 'celda';
+      var cv = document.createElement('canvas'); cv.width = 150; cv.height = 190;
+      var t = document.createElement('div'); t.textContent = per.nombre + (per.humano ? ' (humano)' : '');
+      div.appendChild(cv); div.appendChild(t); $('grilla').appendChild(div);
+      return { per: per, ctx: cv.getContext('2d'), cv: cv };
+    });
+
+    function cuadro(ms) {
+      var t = ms / 1000, esc = +$('zoom').value, est = $('estado').value;
+      var e = { anim: t, t: t, mirando: +$('mirando').value, esc: esc, enSuelo: est !== 'saltar', vx: 0, vy: 0 };
+      if (est === 'correr') e.vx = 300;
+      if (est === 'saltar') { e.vx = 200; e.vy = Math.sin(t * 3) * -500; }
+      if (est === 'victoria') e.victoria = true;
+      if (est === 'muerto') e.muerto = true;
+      var cara = $('conCara').checked && actual
+        ? { id: actual.id, img: actual.img, piel: $('usarPiel').checked ? actual.piel : null } : null;
+      celdas.forEach(function (c) {
+        c.ctx.clearRect(0, 0, c.cv.width, c.cv.height);
+        R.dibujarPersonaje(c.ctx, R.componerPersonaje(c.per, cara), c.cv.width / 2, c.cv.height - 14, e);
+      });
+      requestAnimationFrame(cuadro);
+    }
+
+    caraSintetica('Clara', '#f1c27d', '#3a2416', '#c9d6e8', '#e63946');
+    caraSintetica('Mateo', '#8d5524', '#1b120c', '#e8d8b8', '#2a9d8f');
+    caraSintetica('Sofi', '#f6d1b0', '#b5651d', '#d4e8c9', '#8e44ad');
+    caraSintetica('Bruno', '#c68642', '#1f1a17', '#e0c9e8', '#f4a261');
+    elegir(caras[0]);
+    requestAnimationFrame(cuadro);
+  })(window.RUNNER);
+  </script>
+</body>
+</html>

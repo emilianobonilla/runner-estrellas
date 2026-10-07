@@ -66,7 +66,7 @@ js/net/               Carrera entre varios dispositivos: red.js (conexión) y ca
 js/vendor/            PeerJS, la única librería externa (guardada acá, no se baja de internet)
 js/ui/screens.js      Pantallas: menú, niveles, personalizar, ranking, competencias, carrera
 js/main.js            Arranque y bucle del juego
-herramientas/         Scripts de apoyo (probar niveles, escribir la versión)
+herramientas/         Apoyo para desarrollar (probar niveles, probar caras de foto en los personajes, escribir la versión)
 ```
 
 ## Red multijugador y TURN

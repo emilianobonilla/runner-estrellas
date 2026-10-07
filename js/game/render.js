@@ -68,6 +68,63 @@
   function ovalo(ctx, x, y, rx, ry) { ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); }
   function triangulo(ctx, x1, y1, x2, y2, x3, y3) { ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.lineTo(x3, y3); ctx.closePath(); }
 
+  /* ----- Personaje con la cara de una foto -----
+     El cuerpo es uno de R.personajes y la cara una foto ya recortada (cuadrada, 96 px).
+     Los ajustes se afinan mirando el resultado en herramientas/probar-cara.html:
+       escala       cuánto crece la cabeza al llevar foto (solo el dibujo: el hitbox no cambia)
+       contraespejo la foto no se da vuelta cuando el personaje mira a la izquierda */
+  R.AJUSTES_CARA = { escala: 1.25, contraespejo: true };
+  var LADO_CARA = 96;
+  var fotos = {};          // caras ya decodificadas, por id de cara (se comparten entre cuerpos)
+  var compuestos = {};     // cuerpo + cara ya armados, por "cuerpo|cara|piel"
+
+  /* Solo se acepta un JPEG en base64 como data URL: nunca una dirección de internet
+     (un compañero podría mandar un enlace y hacer que todos los dispositivos lo descarguen). */
+  function esFotoValida(src) {
+    return typeof src === 'string' && /^data:image\/jpeg;base64,[A-Za-z0-9+\/]+=*$/.test(src);
+  }
+
+  function fotoDe(cara) {
+    var f = fotos[cara.id];
+    if (f) return f;
+    f = fotos[cara.id] = {
+      canvas: null, esperando: [],
+      // llama a fn cuando la foto ya se puede dibujar (enseguida si ya estaba)
+      alCargar: function (fn) { if (this.canvas) fn(); else this.esperando.push(fn); }
+    };
+    var im = new Image();
+    im.onload = function () {
+      // Se vuelve a dibujar en un canvas propio: lo que se usa es siempre una imagen
+      // cuadrada de 96 px, venga de donde venga
+      var cv = document.createElement('canvas'); cv.width = cv.height = LADO_CARA;
+      var w = im.naturalWidth, h = im.naturalHeight, l = Math.min(w, h);
+      cv.getContext('2d').drawImage(im, (w - l) / 2, (h - l) / 2, l, l, 0, 0, LADO_CARA, LADO_CARA);
+      f.canvas = cv;
+      f.esperando.splice(0).forEach(function (fn) { fn(); });
+    };
+    im.src = cara.img;
+    return f;
+  }
+
+  /* cuerpo: un personaje de R.personajes. cara: { id, img (data URL JPEG), piel '#rrggbb' }.
+     Devuelve un personaje igual al cuerpo pero con esa cara puesta (si la cara no sirve,
+     el cuerpo solo). Queda en caché por cuerpo, cara y piel: se puede pedir las veces que haga falta. */
+  R.componerPersonaje = function (cuerpo, cara) {
+    if (!cuerpo || !cara || !cara.id || !esFotoValida(cara.img)) return cuerpo;
+    var clave = cuerpo.id + '|' + cara.id + '|' + (cara.piel || '');
+    if (compuestos[clave]) return compuestos[clave];
+    var comp = Object.create(cuerpo);       // hereda todo del cuerpo
+    comp.cara = fotoDe(cara);
+    var col = cuerpo.colores;
+    if (cuerpo.humano && /^#[0-9a-f]{6}$/i.test(cara.piel || '')) {
+      // las manos y los brazos de una persona toman el color de piel de la foto
+      comp.colores = Object.assign({}, col, { piel: cara.piel });
+      if (col.mano === col.piel) comp.colores.mano = cara.piel;
+    }
+    compuestos[clave] = comp;
+    return comp;
+  };
+
   R.dibujarPersonaje = function (ctx, per, cx, cyPies, e) {
     e = e || {};
     var esc = e.esc || 1;
@@ -212,6 +269,14 @@
       else { ctx.beginPath(); ctx.arc(0, cy, 13, 0, Math.PI * 2); }
     }
 
+    // Con foto la cabeza crece (anclada en el mentón) y la foto reemplaza pelo, ojos, boca y hocico;
+    // los accesorios (gorra, corona, orejas, casco...) se siguen dibujando encima
+    var foto = per.cara && per.cara.canvas || null;
+    if (foto) {
+      var k = R.AJUSTES_CARA.escala;
+      ctx.save(); ctx.translate(0, cy + 12); ctx.scale(k, k); ctx.translate(0, -(cy + 12));
+    }
+
     // Cosas que van detrás de la cabeza (orejas, pelo largo, cresta)
     if (tiene('orejas')) {            // gato
       triangulo(ctx, -12, cy - 4, -11, cy - 21, -1, cy - 11); pintar(ctx, ac, 1.8);
@@ -230,7 +295,7 @@
       ctx.beginPath(); ctx.arc(-9, cy - 11, 5.5, 0, Math.PI * 2); pintar(ctx, ac, 1.8);
       ctx.beginPath(); ctx.arc(9, cy - 11, 5.5, 0, Math.PI * 2); pintar(ctx, ac, 1.8);
     }
-    if (per.peinado === 'largo') {
+    if (per.peinado === 'largo' && !foto) {
       rr(ctx, -14, cy - 6, 14, 30 + vuelo * 6, 6); pintar(ctx, c.pelo, 1.8);
     }
     if (tiene('cresta')) {
@@ -240,13 +305,21 @@
 
     // Cara
     cabeza(); pintar(ctx, c.piel);
-    ctx.save(); cabeza(); ctx.clip();
-    ctx.fillStyle = 'rgba(255,255,255,0.16)'; ctx.beginPath(); ctx.arc(-5, cy - 5, 8, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = 'rgba(0,0,0,0.10)'; ctx.fillRect(-14, cy + 8, 28, 6);
-    ctx.restore();
+    if (foto) {
+      ctx.save(); cabeza(); ctx.clip();
+      if (R.AJUSTES_CARA.contraespejo && e.mirando < 0) ctx.scale(-1, 1);   // la foto no se da vuelta
+      ctx.drawImage(foto, -13, cy - 13, 26, 26);
+      ctx.restore();
+      cabeza(); ctx.lineWidth = 2; ctx.lineJoin = 'round'; ctx.strokeStyle = CONTORNO; ctx.stroke();
+    } else {
+      ctx.save(); cabeza(); ctx.clip();
+      ctx.fillStyle = 'rgba(255,255,255,0.16)'; ctx.beginPath(); ctx.arc(-5, cy - 5, 8, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(0,0,0,0.10)'; ctx.fillRect(-14, cy + 8, 28, 6);
+      ctx.restore();
+    }
 
     // Pelo
-    if (per.peinado !== 'ninguno') {
+    if (per.peinado !== 'ninguno' && !foto) {
       ctx.fillStyle = c.pelo;
       if (per.formaCabeza === 'cuadrada') { rr(ctx, -12.5, cy - 12.5, 25, 7, 4); ctx.fill(); }
       else {
@@ -259,49 +332,51 @@
     }
 
     // Parches de los ojos (panda)
-    if (per.parches) {
+    if (per.parches && !foto) {
       ctx.fillStyle = per.parches;
       ctx.save(); ctx.translate(3, cy - 1); ctx.rotate(0.35); ovalo(ctx, 0, 0, 4.4, 5.6); ctx.fill(); ctx.restore();
       ctx.save(); ctx.translate(10, cy - 1); ctx.rotate(-0.35); ovalo(ctx, 0, 0, 4, 5.4); ctx.fill(); ctx.restore();
     }
     // Hocico y cara blanca
-    if (c.hocico) {
+    if (c.hocico && !foto) {
       ctx.fillStyle = c.hocico; ovalo(ctx, 8, cy + 4, 7.5, 5.5); ctx.fill();
     }
 
-    // Ojos y boca
-    var mejilla = per.mejillas !== false && !per.pico && per.boca !== 'recta';
-    if (e.muerto) {
-      ctx.strokeStyle = CONTORNO; ctx.lineWidth = 2; ctx.lineCap = 'round';
-      [3, 9.5].forEach(function (ex) {
-        ctx.beginPath(); ctx.moveTo(ex - 2.5, cy - 4); ctx.lineTo(ex + 2.5, cy + 1); ctx.moveTo(ex + 2.5, cy - 4); ctx.lineTo(ex - 2.5, cy + 1); ctx.stroke();
-      });
-    } else {
-      if (mejilla) { ctx.fillStyle = 'rgba(255,105,120,0.4)'; ovalo(ctx, 0, cy + 4.5, 3, 2); ctx.fill(); ovalo(ctx, 12, cy + 4.5, 2.4, 2); ctx.fill(); }
-      var parpadeo = Math.sin((e.t || 0) * 1.7) > 0.985;
-      [3, 9.5].forEach(function (ex, i) {
-        if (per.parches && !parpadeo) { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ex + 0.4, cy - 1.5, 1.6, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(ex + 0.9, cy - 1.2, 0.9, 0, Math.PI * 2); ctx.fill(); return; }
-        if (parpadeo) { ctx.fillStyle = CONTORNO; ctx.fillRect(ex - 3, cy - 1, 6, 1.5); return; }
-        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ex, cy - 1.5, 3.8, 0, Math.PI * 2); pintar(ctx, '#fff', 1.2);
-        ctx.fillStyle = per.ojos || '#1a1a1a'; ctx.beginPath(); ctx.arc(ex + 1.1, cy - 1.3, 2.3, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ex + 1.9, cy - 2.3, 0.9, 0, Math.PI * 2); ctx.fill();
-      });
-      // Boca
-      ctx.strokeStyle = CONTORNO; ctx.lineWidth = 1.4; ctx.lineCap = 'round';
-      if (per.boca === 'recta') { ctx.beginPath(); ctx.moveTo(3, cy + 6); ctx.lineTo(11, cy + 6); ctx.stroke(); }
-      else if (!per.pico) {
-        if (saltando || e.victoria) { ctx.fillStyle = '#7a1f2b'; ctx.beginPath(); ctx.arc(7, cy + 5, 2.6, 0, Math.PI); ctx.closePath(); ctx.fill(); }
-        else { ctx.beginPath(); ctx.arc(7, cy + 3.8, 3, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke(); }
+    // Ojos, boca, nariz, pico y bigotes (con foto ya vienen en la foto)
+    if (!foto) {
+      var mejilla = per.mejillas !== false && !per.pico && per.boca !== 'recta';
+      if (e.muerto) {
+        ctx.strokeStyle = CONTORNO; ctx.lineWidth = 2; ctx.lineCap = 'round';
+        [3, 9.5].forEach(function (ex) {
+          ctx.beginPath(); ctx.moveTo(ex - 2.5, cy - 4); ctx.lineTo(ex + 2.5, cy + 1); ctx.moveTo(ex + 2.5, cy - 4); ctx.lineTo(ex - 2.5, cy + 1); ctx.stroke();
+        });
+      } else {
+        if (mejilla) { ctx.fillStyle = 'rgba(255,105,120,0.4)'; ovalo(ctx, 0, cy + 4.5, 3, 2); ctx.fill(); ovalo(ctx, 12, cy + 4.5, 2.4, 2); ctx.fill(); }
+        var parpadeo = Math.sin((e.t || 0) * 1.7) > 0.985;
+        [3, 9.5].forEach(function (ex, i) {
+          if (per.parches && !parpadeo) { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ex + 0.4, cy - 1.5, 1.6, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(ex + 0.9, cy - 1.2, 0.9, 0, Math.PI * 2); ctx.fill(); return; }
+          if (parpadeo) { ctx.fillStyle = CONTORNO; ctx.fillRect(ex - 3, cy - 1, 6, 1.5); return; }
+          ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ex, cy - 1.5, 3.8, 0, Math.PI * 2); pintar(ctx, '#fff', 1.2);
+          ctx.fillStyle = per.ojos || '#1a1a1a'; ctx.beginPath(); ctx.arc(ex + 1.1, cy - 1.3, 2.3, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ex + 1.9, cy - 2.3, 0.9, 0, Math.PI * 2); ctx.fill();
+        });
+        // Boca
+        ctx.strokeStyle = CONTORNO; ctx.lineWidth = 1.4; ctx.lineCap = 'round';
+        if (per.boca === 'recta') { ctx.beginPath(); ctx.moveTo(3, cy + 6); ctx.lineTo(11, cy + 6); ctx.stroke(); }
+        else if (!per.pico) {
+          if (saltando || e.victoria) { ctx.fillStyle = '#7a1f2b'; ctx.beginPath(); ctx.arc(7, cy + 5, 2.6, 0, Math.PI); ctx.closePath(); ctx.fill(); }
+          else { ctx.beginPath(); ctx.arc(7, cy + 3.8, 3, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke(); }
+        }
       }
-    }
-    // Nariz, pico, bigotes
-    if (per.nariz) { ctx.fillStyle = per.nariz; ovalo(ctx, 11.5, cy + 1.8, 2.3, 1.7); ctx.fill(); }
-    if (per.pico) {
-      triangulo(ctx, 8, cy + 1, 19, cy + 4, 8, cy + 8); pintar(ctx, per.pico, 1.4);
-    }
-    if (per.bigotes) {
-      ctx.strokeStyle = 'rgba(30,30,40,0.7)'; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(11, cy + 4); ctx.lineTo(19, cy + 2); ctx.moveTo(11, cy + 5.5); ctx.lineTo(19, cy + 6.5); ctx.stroke();
+      // Nariz, pico, bigotes
+      if (per.nariz) { ctx.fillStyle = per.nariz; ovalo(ctx, 11.5, cy + 1.8, 2.3, 1.7); ctx.fill(); }
+      if (per.pico) {
+        triangulo(ctx, 8, cy + 1, 19, cy + 4, 8, cy + 8); pintar(ctx, per.pico, 1.4);
+      }
+      if (per.bigotes) {
+        ctx.strokeStyle = 'rgba(30,30,40,0.7)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(11, cy + 4); ctx.lineTo(19, cy + 2); ctx.moveTo(11, cy + 5.5); ctx.lineTo(19, cy + 6.5); ctx.stroke();
+      }
     }
     if (per.tornillos) {
       ctx.fillStyle = '#7f8ea3'; ctx.beginPath(); ctx.arc(-12.5, cy + 1, 2.4, 0, Math.PI * 2); pintar(ctx, '#9aa8bd', 1.2);
@@ -359,7 +434,7 @@
       ctx.strokeStyle = CONTORNO; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(-12, cy - 8); ctx.lineTo(12, cy - 2); ctx.stroke();
       ctx.fillStyle = CONTORNO; ovalo(ctx, 9.5, cy - 1.5, 4, 3.6); ctx.fill();
     }
-    if (tiene('lentes')) {
+    if (tiene('lentes') && !foto) {   // con foto taparían sus ojos de verdad
       ctx.strokeStyle = CONTORNO; ctx.lineWidth = 1.6;
       ctx.beginPath(); ctx.arc(3, cy - 1.5, 5, 0, Math.PI * 2); ctx.stroke();
       ctx.beginPath(); ctx.arc(10.5, cy - 1.5, 5, 0, Math.PI * 2); ctx.stroke();
@@ -371,6 +446,7 @@
       ctx.beginPath(); ctx.arc(-1, cy - 18, 3.6, 0, Math.PI * 2); pintar(ctx, '#fff', 1.4);
     }
 
+    if (foto) ctx.restore();   // fin de la cabeza agrandada
     ctx.restore();
   };
 
