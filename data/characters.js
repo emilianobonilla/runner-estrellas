@@ -12,6 +12,8 @@
    detalle (de la remera): 'rayas' | 'panza' | 'estrella' | 'panel' | 'cinturon' | 'botones' | 'bufanda'
    Extras: hocico (color), nariz (color), pico (color), parches (color de los ojos),
      bigotes, tornillos, boca: 'recta', ojos (color), colores.manga / mano / panza
+   humano: true  -> cuerpo de persona: si el jugador se pone su cara (foto), las manos
+     y los brazos toman el color de piel de esa foto. Los animales y el robot no lo llevan.
 
    Opcional: usar una hoja de sprites propia (PNG) en assets/img/:
      sprite: {
@@ -26,6 +28,7 @@
 
 RUNNER.registrarPersonaje({
   id: 'nico',
+  humano: true,
   nombre: 'Nico',
   descripcion: 'Rápido y con gorra.',
   formaCabeza: 'redonda',
@@ -37,6 +40,7 @@ RUNNER.registrarPersonaje({
 
 RUNNER.registrarPersonaje({
   id: 'luna',
+  humano: true,
   nombre: 'Luna',
   descripcion: 'Le encanta saltar alto.',
   formaCabeza: 'redonda',
@@ -76,6 +80,7 @@ RUNNER.registrarPersonaje({
 
 RUNNER.registrarPersonaje({
   id: 'astro',
+  humano: true,
   nombre: 'Astro',
   descripcion: 'Viaja por las estrellas.',
   formaCabeza: 'redonda',
@@ -127,6 +132,7 @@ RUNNER.registrarPersonaje({
 
 RUNNER.registrarPersonaje({
   id: 'merlina',
+  humano: true,
   nombre: 'Merlina',
   descripcion: 'Hace magia con las estrellas.',
   formaCabeza: 'redonda',
@@ -139,6 +145,7 @@ RUNNER.registrarPersonaje({
 
 RUNNER.registrarPersonaje({
   id: 'ninja',
+  humano: true,
   nombre: 'Ninja',
   descripcion: 'Silencioso y ágil.',
   formaCabeza: 'redonda',
@@ -150,6 +157,7 @@ RUNNER.registrarPersonaje({
 
 RUNNER.registrarPersonaje({
   id: 'princesa',
+  humano: true,
   nombre: 'Coro',
   descripcion: 'Reina de las nubes.',
   formaCabeza: 'redonda',
@@ -161,6 +169,7 @@ RUNNER.registrarPersonaje({
 
 RUNNER.registrarPersonaje({
   id: 'pipa',
+  humano: true,
   nombre: 'Pipa',
   descripcion: 'Capitana de los siete mares.',
   formaCabeza: 'redonda',
