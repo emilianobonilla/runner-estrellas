@@ -33,6 +33,13 @@
     ctx.closePath();
   }
 
+  /* Colores del ladrillo: cada tema puede traer los suyos (ladrillo, ladrilloLuz,
+     ladrilloJunta); si no, es el rojo de siempre. */
+  R.coloresLadrillo = function (tema) {
+    tema = tema || {};
+    return { base: tema.ladrillo || '#c4573a', luz: tema.ladrilloLuz || '#e48a5e', junta: tema.ladrilloJunta || '#6a2e20' };
+  };
+
   function sombrear(hex, f) {
     // aclara (f>0) u oscurece (f<0) un color #rrggbb
     var m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
@@ -742,7 +749,7 @@
     var cx0 = Math.max(0, Math.floor(cam / T) - 1);
     var cx1 = Math.min(nivel.cols - 1, Math.ceil((cam + R.ANCHO) / T) + 1);
     var im = tema.imagenes || {};
-    var imgSuelo = R.imagen(im.suelo), imgBloque = R.imagen(im.bloque), imgPincho = R.imagen(im.pincho);
+    var imgSuelo = R.imagen(im.suelo), imgBloque = R.imagen(im.bloque), imgPincho = R.imagen(im.pincho), imgLadrillo = R.imagen(im.ladrillo);
     for (var cy = 0; cy < nivel.filas; cy++) {
       for (var cx = cx0; cx <= cx1; cx++) {
         var c = nivel.celdas[cy][cx], x = cx * T, y = cy * T;
@@ -752,6 +759,9 @@
         } else if (c === '#') {
           if (imgBloque) { ctx.drawImage(imgBloque, x, y, T, T); continue; }
           this.bloque(x, y, tema);
+        } else if (c === 'L') {
+          if (imgLadrillo) { ctx.drawImage(imgLadrillo, x, y, T, T); continue; }
+          this.ladrillo(x, y, tema);
         } else if (c === '^') {
           if (imgPincho) { ctx.drawImage(imgPincho, x, y, T, T); continue; }
           this.pinchos(x, y, tema);
@@ -853,6 +863,21 @@
       ctx.fillStyle = tema.cristal; ctx.globalAlpha = 0.65;
       ctx.beginPath(); ctx.moveTo(x + 24, y + 14); ctx.lineTo(x + 30, y + 24); ctx.lineTo(x + 24, y + 34); ctx.lineTo(x + 18, y + 24); ctx.closePath(); ctx.fill();
       ctx.globalAlpha = 1;
+    }
+  };
+
+  /* Ladrillo: una pared de ladrillitos (se ve distinto del bloque de madera, que no se rompe). */
+  Renderer.prototype.ladrillo = function (x, y, tema) {
+    var ctx = this.ctx, c = R.coloresLadrillo(tema);
+    ctx.fillStyle = c.junta; ctx.fillRect(x, y, T, T);            // la mezcla entre ladrillos
+    for (var fila = 0; fila < 3; fila++) {
+      var y0 = y + fila * 16;
+      // la hilera del medio va corrida media pieza, como en una pared de verdad
+      for (var bx = fila === 1 ? -12 : 0; bx < T; bx += 24) {
+        var x0 = Math.max(0, bx), x1 = Math.min(T, bx + 24);
+        ctx.fillStyle = c.base; ctx.fillRect(x + x0 + 1, y0 + 1, x1 - x0 - 2, 14);
+        ctx.fillStyle = c.luz; ctx.fillRect(x + x0 + 1, y0 + 1, x1 - x0 - 2, 3);
+      }
     }
   };
 
@@ -1302,6 +1327,7 @@
       var q = p.particulas[i];
       ctx.globalAlpha = Math.max(0, q.vida / q.vidaMax);
       ctx.fillStyle = q.color;
+      if (q.trozo) { ctx.fillRect(q.x - q.r, q.y - q.r, q.r * 2, q.r * 2); continue; }
       ctx.beginPath(); ctx.arc(q.x, q.y, q.r, 0, Math.PI * 2); ctx.fill();
     }
     ctx.globalAlpha = 1;

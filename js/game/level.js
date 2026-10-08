@@ -17,6 +17,7 @@
     this.estrellas = [];
     this.enemigos = [];
     this.checkpoints = [];
+    this.rotos = [];            // ladrillos recién rotos; la partida los toma para el sonido y los pedazos
     this.meta = null;
     this.inicio = { x: T * 2, y: this.alto - T };
 
@@ -25,7 +26,7 @@
       for (var x = 0; x < this.cols; x++) {
         var ch = fila[x] || '.', celda = '.';
         switch (ch) {
-          case 'G': case '#': case '^': celda = ch; break;
+          case 'G': case '#': case 'L': case '^': celda = ch; break;
           case '*': this.estrellas.push(new R.Estrella(x * T + T / 2, y * T + T / 2)); break;
           case 'C': this.checkpoints.push(new R.Checkpoint(x * T + T / 2, (y + 1) * T)); break;
           case 'F': this.meta = { x: x * T, y: (y + 1) * T }; break;
@@ -49,7 +50,15 @@
   };
   Nivel.prototype.esSolido = function (cx, cy) {
     var c = this.celda(cx, cy);
-    return c === 'G' || c === '#';
+    return c === 'G' || c === '#' || c === 'L';
+  };
+  /* El ladrillo ('L') es sólido como un bloque, pero se rompe de un cabezazo desde abajo. */
+  Nivel.prototype.esRompible = function (cx, cy) { return this.celda(cx, cy) === 'L'; };
+  Nivel.prototype.romper = function (cx, cy) {
+    if (!this.esRompible(cx, cy)) return false;
+    this.celdas[cy][cx] = '.';
+    this.rotos.push({ cx: cx, cy: cy });
+    return true;
   };
   Nivel.prototype.esPeligro = function (cx, cy) { return this.celda(cx, cy) === '^'; };
 

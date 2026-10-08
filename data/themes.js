@@ -16,9 +16,14 @@
      imagenes: { fondo: 'assets/img/fondo.png',   // se repite horizontalmente
                  suelo: 'assets/img/suelo.png',   // 48x48
                  bloque: 'assets/img/bloque.png', // 48x48
+                 ladrillo: 'assets/img/ladrillo.png', // 48x48 (el que se rompe)
                  pincho: 'assets/img/pincho.png', // 48x48
                  estrella: 'assets/img/estrella.png' }
    Si una imagen no existe, se usa el dibujo por defecto.
+
+   Opcional: el ladrillo que se rompe es rojo en todos los temas. Para
+   cambiarlo en uno, agregá ladrillo (el color), ladrilloLuz (el brillo de
+   arriba) y ladrilloJunta (la mezcla entre ladrillos), en #rrggbb.
    ============================================================ */
 
 RUNNER.registrarTema({

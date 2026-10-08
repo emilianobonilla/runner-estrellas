@@ -62,6 +62,7 @@
     if (this.estado === 'jugando') {
       this.tiempo += dt;
       j.actualizar(dt, n, this.input, this.camara.x + 4, this);
+      this.mostrarRotos();
       // Los enemigos nunca se sacan de la lista: en la carrera cada uno tiene
       // que seguir teniendo el mismo número en todos los dispositivos.
       var objetivos = this.objetivos();
@@ -100,6 +101,29 @@
       if (p.vida <= 0) this.particulas.splice(i, 1);
     }
     if (this.mensaje) { this.mensaje.t -= dt; if (this.mensaje.t <= 0) this.mensaje = null; }
+  };
+
+  /* Los ladrillos que el jugador rompió con la cabeza en este cuadro. Cada
+     dispositivo rompe los suyos: en una carrera no se comparten, el techo de
+     uno no le cambia nada a los demás. */
+  Partida.prototype.mostrarRotos = function () {
+    var rotos = this.nivel.rotos;
+    for (var i = 0; i < rotos.length; i++) this.romperLadrillo(rotos[i].cx, rotos[i].cy);
+    rotos.length = 0;
+  };
+
+  /* El ladrillo suena y salta en seis pedazos que caen. */
+  Partida.prototype.romperLadrillo = function (cx, cy) {
+    var c = R.coloresLadrillo(this.tema), colores = [c.base, c.luz, c.junta, c.luz, c.base, c.junta];
+    this.audio.romper();
+    for (var i = 0; i < 6; i++) {
+      var col = i % 2, fila = Math.floor(i / 2);
+      var q = new R.Particula(cx * T + T * (col + 0.5) / 2, cy * T + T * (fila + 0.5) / 3,
+        (col ? 1 : -1) * (50 + Math.random() * 120), -300 - Math.random() * 120 + fila * 60,
+        colores[i], 0.7 + Math.random() * 0.4, 6, 1700);
+      q.trozo = true;   // se dibuja cuadrado, no redondo
+      this.particulas.push(q);
+    }
   };
 
   /* Cada rival llega 15 veces por segundo: acercamos su muñeco de a poco para que no salte. */

@@ -46,6 +46,11 @@ mismo recorrido y conserva las que quedan.
 **Checkpoints:** se activan al cruzar la línea de la bandera, a cualquier altura y sin
 tener que tocarla. La bandera de meta, en cambio, sí hay que tocarla.
 
+**Ladrillos:** los bloques rojos de ladrillo se rompen de un cabezazo, saltando desde abajo
+(como en Mario); los de madera no se rompen nunca. Se rompen solo en la pantalla de quien los
+golpea: en una carrera no se comparten con los demás. Hoy están en los 5 niveles del
+Mundo 1 (1-1 a 1-5).
+
 ## Estructura del proyecto
 
 ```
@@ -126,6 +131,7 @@ El juego trae 25 niveles (`nivel-01` a `nivel-25`), de dificultad 1 a 5. Para ag
 ```
 .  vacío        G  suelo         #  bloque        *  estrella
 ^  pincho       E  enemigo       C  checkpoint    P  inicio      F  meta
+L  ladrillo (sólido como el bloque, pero se rompe de un cabezazo desde abajo)
 ```
 
 La `E` pone **el enemigo del mundo** (ver la tabla de arriba), así el mismo mapa cambia de
@@ -144,6 +150,12 @@ Consejos de diseño (medidos con la física actual):
 - Las estrellas se alcanzan hasta **5 celdas** por encima del piso.
 - Corriendo se cruza un pozo de hasta **5 celdas** (4 es cómodo).
 - Cuidado con techos o bloques bajos encima de una plataforma: el jugador se golpea la cabeza.
+- Los ladrillos (`L`) valen como bloques para todas las reglas de diseño, y **nunca pueden ser
+  imprescindibles**: se rompen al azar según cómo salte cada chico, así que el nivel tiene que
+  poder terminarse con todos rotos (el probador lo comprueba). Se rompen solo desde abajo:
+  un ladrillo con otro bloque debajo no se puede romper. Evitá los ladrillos bajos (justo sobre la
+  cabeza) a menos de 3 celdas de una estrella del piso, de un pincho o de un pozo: un salto
+  corto contra su costado o su base se corta.
 - No pongas una plataforma baja (a 2 o 3 celdas) justo antes de un pincho o pozo:
   el jugador se golpea la cabeza y no llega.
 - La fila de abajo sin `G` es un pozo (caer = perder una vida de la partida).
@@ -161,6 +173,7 @@ Revisa todos los niveles contra esas reglas (pozos, techos, escalones, estrellas
 alcance, enemigos mal puestos: sin lugar para caminar, saltarines bajo un techo bajo o
 voladores encerrados) y además los juega con un bot que usa la física real del
 juego: si el bot no llega a la meta, el nivel es imposible o tiene un salto demasiado justo.
+En los niveles con ladrillos, el bot los juega una segunda vez con todos los ladrillos rotos.
 No es parte del juego (`index.html` no lo carga) y no necesita internet ni instalar nada.
 
 ## Los 5 tipos de enemigos

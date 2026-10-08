@@ -393,6 +393,7 @@
       '<div><h3>Objetivo</h3><p>Llegá a la bandera 🏁 juntando la mayor cantidad de estrellas ⭐. Podés retroceder un poco, pero la pantalla no vuelve atrás.</p></div>' +
       '<div><h3>Puntos</h3><p>Estrella: 100 · Pisar un enemigo: 50 a 120 (según el bicho) · Llegar a la meta: 500<br>Bonus por terminar rápido y por juntar todas las estrellas.</p></div>' +
       '<div><h3>Peligros</h3><p>Los pinchos y los enemigos te quitan una vida. Tenés 3 para toda la partida: se comparten entre todos los niveles y, si se acaban, el juego empieza de nuevo. Saltá encima de los enemigos para vencerlos. Los checkpoints se activan al pasar la línea de la bandera y guardan tu avance.</p></div>' +
+      '<div><h3>Ladrillos 🧱</h3><p>Los ladrillos rojos se rompen: saltá justo debajo y pegales con la cabeza. Los bloques de madera no se rompen nunca.</p></div>' +
       '<div><h3>Los 5 enemigos</h3><p>Cada mundo tiene el suyo, cada vez más difícil:</p><ul class="lista-enemigos">' + listaEnemigos() + '</ul></div>' +
       '<div><h3>Versión</h3><p>Estás jugando la <b>' + esc(R.versionTexto()) + '</b>.<br>' +
       '<a href="' + esc(R.versionURL()) + '" target="_blank" rel="noopener" style="color:var(--acento2)">Ver este código en GitHub</a> · ' +

@@ -92,10 +92,17 @@
     for (var cx = cx0; cx <= cx1; cx++) {
       if (nivel.esSolido(cx, cy)) {
         if (dy > 0) { this.y = cy * T - this.h; this.vy = 0; this.enSuelo = true; }
-        else { this.y = (cy + 1) * T; this.vy = 0; this.saltando = false; }
+        else { this.y = (cy + 1) * T; this.vy = 0; this.saltando = false; this.cabezazo(nivel, cy, cx0, cx1); }
         return;
       }
     }
+  };
+
+  /* Cabezazo contra el techo: los ladrillos que toca la cabeza se rompen (los
+     bloques de madera no). Si roza un vecino, también cae: así el hueco que
+     queda es lo bastante ancho para pasar. */
+  Jugador.prototype.cabezazo = function (nivel, cy, cx0, cx1) {
+    for (var cx = cx0; cx <= cx1; cx++) nivel.romper(cx, cy);
   };
 
   R.Jugador = Jugador;

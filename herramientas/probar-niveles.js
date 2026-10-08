@@ -13,11 +13,15 @@
           (los voladores, en cambio, tienen que estar en el aire)
         - enemigos lejos de pinchos y con lugar para moverse
         - los saltarines, con espacio libre arriba para saltar
+        - los ladrillos ('L') cuentan como bloques para todas estas reglas
 
    2) Un bot que juega el nivel con la física real del juego:
       corre a la derecha y salta; si muere, reintenta cambiando la
       forma de saltar ESE obstáculo. Si ninguna combinación llega a
       la meta, el nivel es imposible (o hay un salto demasiado justo).
+      Los ladrillos se rompen de verdad cuando el bot se da un cabezazo.
+      Además, en los niveles con ladrillos el bot lo juega una segunda
+      vez con TODOS rotos: ningún ladrillo puede ser imprescindible.
 
    No forma parte del juego: index.html no lo carga.
    ============================================================ */
@@ -46,7 +50,7 @@ function revisar(def) {
   const filas = def.mapa, alto = filas.length;
   const ancho = filas.reduce((m, f) => Math.max(m, f.length), 0);
   const ch = (c, r) => (r < 0 || r >= alto || c < 0 || c >= ancho) ? '.' : (filas[r][c] || '.');
-  const solido = (c, r) => (c < 0 || c >= ancho) ? true : ch(c, r) === 'G' || ch(c, r) === '#';
+  const solido = (c, r) => (c < 0 || c >= ancho) ? true : 'G#L'.indexOf(ch(c, r)) >= 0;
   const piso = alto - 1;
   const errores = [];
 
@@ -118,7 +122,7 @@ function revisar(def) {
 
   // plataformas flotantes con apoyo
   for (let r = 0; r < alto; r++) for (let c = 0; c < ancho; c++) {
-    if (ch(c, r) !== '#' || solido(c, r - 1)) continue;
+    if ('#L'.indexOf(ch(c, r)) < 0 || solido(c, r - 1)) continue;
     let apoyo = false;
     for (let cc = Math.max(0, c - 4); cc < Math.min(ancho, c + 5); cc++)
       for (let rr = r; rr < Math.min(alto, r + 4); rr++)
@@ -286,6 +290,13 @@ R.niveles.forEach((def) => {
   const errores = revisar(def);
   const { mejor, corridas, ajustes } = resolver(def);
   const nivel = new R.Nivel(def);
+  const ladrillos = def.mapa.join('').split('L').length - 1;
+  // Ningún ladrillo puede hacer falta: el mismo nivel, con todos rotos, también se tiene que poder
+  let sinLadrillos = null;
+  if (ladrillos) {
+    const roto = Object.assign({}, def, { mapa: def.mapa.map((f) => f.replace(/L/g, '.')) });
+    sinLadrillos = resolver(roto).mejor;
+  }
   if (errores.length) {
     console.log(`⚠️  ${nombre} ${errores.length} aviso(s) de diseño (revisalos, no siempre son un error):`);
     errores.slice(0, 12).forEach((e) => console.log(`      - ${e}`));
@@ -293,10 +304,15 @@ R.niveles.forEach((def) => {
   if (mejor.ok) {
     console.log(`✅ ${nombre} el bot lo termina en ${mejor.t.toFixed(1)}s (objetivo ${def.tiempoObjetivo}s) · ` +
       `${nivel.estrellas.length} estrellas, ${nivel.enemigos.length} enemigos, ${nivel.checkpoints.length} checkpoints · ` +
+      (ladrillos ? `${ladrillos} ladrillos · ` : '') +
       `${ajustes} salto(s) ajustado(s) en ${corridas} intento(s)`);
   } else {
     problemas++;
     console.log(`❌ ${nombre} el bot NO llega: ${mejor.motivo} en la col ${mejor.col} de ${nivel.cols} (${corridas} intentos)`);
+  }
+  if (sinLadrillos && !sinLadrillos.ok) {
+    problemas++;
+    console.log(`❌ ${nombre} con todos los ladrillos rotos el bot NO llega: ${sinLadrillos.motivo} en la col ${sinLadrillos.col}; algún ladrillo es imprescindible`);
   }
 });
 console.log(problemas ? `\n${problemas} nivel(es) para revisar.` : '\nTodos los niveles están bien. 🎉');

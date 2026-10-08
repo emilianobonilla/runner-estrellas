@@ -27,6 +27,20 @@
     } catch (e) { /* sin audio */ }
   };
 
+  /* Ráfaga de ruido que se apaga sola (golpes, cosas que se rompen). */
+  Audio.prototype.ruido = function (dur, vol) {
+    if (this.silencio) return;
+    try {
+      var c = this._contexto(); if (!c) return;
+      var n = Math.floor(c.sampleRate * dur), buf = c.createBuffer(1, n, c.sampleRate), d = buf.getChannelData(0);
+      for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+      var s = c.createBufferSource(), g = c.createGain();
+      s.buffer = buf; g.gain.value = vol || 0.1;
+      s.connect(g); g.connect(c.destination);
+      s.start();
+    } catch (e) { /* sin audio */ }
+  };
+
   Audio.prototype.salto = function () { this.tono(280, 0.16, 'square', 0.05, 320); };
   Audio.prototype.estrella = function () {
     var self = this;
@@ -35,6 +49,10 @@
   };
   Audio.prototype.golpe = function () { this.tono(220, 0.35, 'sawtooth', 0.09, -160); };
   Audio.prototype.pisar = function () { this.tono(160, 0.12, 'square', 0.08, -110); };
+  Audio.prototype.romper = function () {
+    this.ruido(0.2, 0.12);
+    this.tono(190, 0.1, 'square', 0.05, -120);
+  };
   Audio.prototype.checkpoint = function () {
     var self = this;
     this.tono(660, 0.1, 'triangle', 0.08);
